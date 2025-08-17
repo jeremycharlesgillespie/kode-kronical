@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
@@ -53,7 +53,7 @@ jobs:
         fetch-depth: 0  # Fetch full history for version management
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
     
@@ -109,16 +109,35 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Get package version
+      if: github.ref == 'refs/heads/main'
+      id: get_version
+      run: |
+        VERSION=$(python -c "
+        import tomllib
+        try:
+            with open('pyproject.toml', 'rb') as f:
+                data = tomllib.load(f)
+                print(data['project']['version'])
+        except:
+            import re
+            with open('pyproject.toml', 'r') as f:
+                content = f.read()
+                match = re.search(r'version\s*=\s*[\"\'](.*?)[\"\']', content)
+                print(match.group(1) if match else 'unknown')
+        ")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
     - name: Create GitHub Release (main branch only)
       if: github.ref == 'refs/heads/main' && success()
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ env.PACKAGE_VERSION }}
-        release_name: Release v${{ env.PACKAGE_VERSION }}
+        tag_name: v${{ steps.get_version.outputs.version }}
+        name: Release v${{ steps.get_version.outputs.version }}
         body: |
-          Automated release of kode-kronical v${{ env.PACKAGE_VERSION }}
+          Automated release of kode-kronical v${{ steps.get_version.outputs.version }}
           
           ## Changes
           - Auto-built and published to PyPI
@@ -127,13 +146,14 @@ jobs:
           
           ## Installation
           ```bash
-          pip install kode-kronical==${{ env.PACKAGE_VERSION }}
+          pip install kode-kronical==${{ steps.get_version.outputs.version }}
           ```
         draft: false
         prerelease: false
+        files: dist/*
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: dist-packages

@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kode-kronical"
+version = "0.2.2"
+authors = [
+    {name = "Jeremy Gillespie", email = "metalgear386@googlemail.com"},
+]
+description = "A lightweight Python performance tracking library with automatic data collection and visualization"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+    "Topic :: Software Development :: Testing",
+]
+keywords = ["performance", "profiling", "monitoring", "timing", "benchmarking"]
+dependencies = [
+    "omegaconf>=2.3.0",
+]
+
+[project.optional-dependencies]
+aws = ["boto3>=1.26.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jeremycharlesgillespie/kode-kronical"
+Documentation = "https://kode-kronical.readthedocs.io/"
+Repository = "https://github.com/jeremycharlesgillespie/kode-kronical"
+"Bug Tracker" = "https://github.com/jeremycharlesgillespie/kode-kronical/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["kode_kronical*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+kode_kronical = ["*.yaml", "*.yml"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "0.2.2"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "--cov=src --cov-report=html --cov-report=term-missing"

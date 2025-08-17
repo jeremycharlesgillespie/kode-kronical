@@ -1,0 +1,33 @@
+[Unit]
+Description=kode-kronical System Monitoring Daemon
+Documentation=https://github.com/jeremycharlesgillespie/kode-kronical
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/kode-kronical-daemon start
+ExecStop=/usr/local/bin/kode-kronical-daemon stop
+ExecReload=/usr/local/bin/kode-kronical-daemon restart
+PIDFile=/var/run/kode-kronical-daemon.pid
+Restart=on-failure
+RestartSec=10
+
+# Security settings
+User=kode-kronical
+Group=kode-kronical
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kode-kronical /var/log
+RuntimeDirectory=kode-kronical
+StateDirectory=kode-kronical
+LogsDirectory=kode-kronical
+
+# Resource limits
+LimitNOFILE=4096
+CPUQuota=20%
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,67 @@
+# KodeKronical Configuration Example
+# Copy this file to .kode-kronical.yaml and customize for your needs
+
+# Core KodeKronical Settings
+kode_kronical:
+  enabled: true
+  debug: false
+  min_execution_time: 0.001  # Only track functions > 1ms
+  max_tracked_calls: 10000
+
+# Storage Configuration - Choose one mode
+
+# Option 1: Local Storage (No AWS required) - Recommended for development
+local:
+  enabled: true
+  data_dir: "./perf_data"
+  format: "json"
+  max_records: 1000
+
+# Option 2: AWS DynamoDB (for production) - Comment out local section above
+# local:
+#   enabled: false
+# aws:
+#   region: "us-east-1"
+#   table_name: "kode-kronical-data"
+#   profile: null  # Use default AWS profile
+#   auto_create_table: true
+
+# Upload Configuration
+upload:
+  strategy: "on_exit"  # on_exit, real_time, batch, manual
+
+# Performance Tracking Filters
+filters:
+  # Modules to exclude from tracking (common libraries that aren't your code)
+  exclude_modules:
+    - "boto3"
+    - "requests"
+    - "urllib3"
+    - "logging"
+  
+  # Function patterns to exclude (regex patterns)
+  exclude_functions:
+    - "^_.*"      # Private functions (starting with _)
+    - "^test_.*"  # Test functions
+  
+  # Track function arguments (may impact performance)
+  track_arguments: false
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  
+# Advanced Configuration (uncomment to customize)
+# upload:
+#   batch_size: 100
+#   retry_attempts: 3
+#   timeout: 30
+# 
+# performance:
+#   compression: true
+#   memory_limit: 100
+# 
+# dashboard:
+#   enabled: true
+#   host: "127.0.0.1"
+#   port: 8000

@@ -1,0 +1,62 @@
+# kode-kronical-daemon configuration file
+# This file configures the system monitoring daemon
+
+daemon:
+  # PID file location
+  pid_file: /var/run/kode-kronical-daemon.pid
+  
+  # Log file location
+  log_file: /var/log/kode-kronical-daemon.log
+  
+  # Data directory for storing metrics
+  data_dir: /var/lib/kode-kronical
+  
+  # Sampling interval in seconds
+  sample_interval: 1.0
+  
+  # Maximum number of samples to keep in memory
+  max_samples: 3600
+  
+  # Data retention period in hours
+  data_retention_hours: 24
+  
+  # Enable network monitoring
+  enable_network_monitoring: true
+
+# System monitoring settings
+monitoring:
+  # Track all Python processes automatically
+  auto_track_python: true
+  
+  # Additional process names to track
+  track_processes:
+    - node
+    - java
+    - ruby
+  
+  # CPU threshold for alerts (percentage)
+  cpu_alert_threshold: 90
+  
+  # Memory threshold for alerts (percentage)
+  memory_alert_threshold: 85
+
+# Data export settings
+export:
+  # Export format (json, csv, parquet)
+  format: json
+  
+  # Compression for exports
+  compress: true
+  
+  # Export batch size (number of samples)
+  batch_size: 1000
+
+# Integration settings
+integration:
+  # Enable REST API endpoint
+  enable_api: false
+  api_port: 9090
+  
+  # Enable Prometheus metrics export
+  enable_prometheus: false
+  prometheus_port: 9091

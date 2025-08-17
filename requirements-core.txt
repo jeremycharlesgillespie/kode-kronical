@@ -1,0 +1,8 @@
+# Core dependencies for kode-kronical package only
+# This excludes Django dashboard dependencies for users who only want the performance tracking library
+
+# Core configuration management
+omegaconf>=2.3.0
+
+# Optional AWS support (users can install with pip install kode-kronical[aws])
+# boto3>=1.26.0  # Commented out - this is in optional dependencies

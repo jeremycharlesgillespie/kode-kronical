@@ -1,0 +1,159 @@
+# KodeKronical Default Configuration
+# This file defines the default configuration values for KodeKronical
+# These values can be overridden by user config files
+
+# Core KodeKronical Settings
+kode_kronical:
+  # Whether KodeKronical is enabled (can be disabled for production)
+  enabled: true
+  
+  # Debug mode - enables verbose logging
+  debug: false
+  
+  # Minimum execution time to track (in seconds)
+  # Functions faster than this will be ignored
+  min_execution_time: 0.001
+  
+  # Maximum number of function calls to track per session
+  max_tracked_calls: 10000
+  
+  # Enhanced exception handling with variable inspection
+  enable_enhanced_exceptions: true
+  
+  # Maximum length for string representations in exception traces
+  exception_max_value_length: 1000
+  
+  # Maximum number of items to show from collections in exception traces
+  exception_max_collection_items: 10
+  
+  # Whether to show global variables in exception traces
+  exception_show_globals: true
+
+# AWS DynamoDB Configuration
+aws:
+  # AWS region for DynamoDB
+  region: "us-east-1"
+  
+  # DynamoDB table name for storing performance data
+  table_name: "kode-kronical-data"
+  
+  # AWS profile to use (if not using default)
+  profile: null
+  
+  # Whether to create the table if it doesn't exist
+  auto_create_table: true
+  
+  # DynamoDB read/write capacity units for auto-created tables
+  read_capacity: 5
+  write_capacity: 5
+
+# Local Storage Configuration (alternative to AWS)
+local:
+  # Enable local-only mode (no AWS required)
+  enabled: false
+  
+  # Directory to store local performance data
+  data_dir: "./perf_data"
+  
+  # Local storage format: "json", "sqlite", "csv"
+  format: "json"
+  
+  # Maximum number of records to keep locally
+  max_records: 1000
+
+# Data Upload Configuration
+upload:
+  # When to upload data: "on_exit", "real_time", "batch", "manual"
+  strategy: "on_exit"
+  
+  # Batch size for batch uploads
+  batch_size: 100
+  
+  # Batch upload interval in seconds
+  batch_interval: 60
+  
+  # Retry attempts for failed uploads
+  retry_attempts: 3
+  
+  # Timeout for upload operations (seconds)
+  timeout: 30
+
+# Performance Tracking Filters
+filters:
+  # Modules to exclude from tracking
+  exclude_modules:
+    - "boto3"
+    - "botocore"
+    - "urllib3"
+    - "requests"
+    - "logging"
+    - "threading"
+    - "multiprocessing"
+  
+  # Only track functions from these modules (if specified)
+  include_modules: []
+  
+  # Function name patterns to exclude (regex)
+  exclude_functions:
+    - "^_.*"      # Private functions
+    - "^test_.*"  # Test functions
+  
+  # Only track these function patterns (if specified)
+  include_functions: []
+  
+  # Whether to track function arguments (may impact performance)
+  track_arguments: false
+  
+  # Whether to track return values (may impact performance)
+  track_return_values: false
+
+# Web Dashboard Configuration
+dashboard:
+  # Whether the web dashboard is enabled
+  enabled: true
+  
+  # Host for the Django server
+  host: "127.0.0.1"
+  
+  # Port for the Django server
+  port: 8000
+  
+  # Django debug mode
+  debug: false
+  
+  # Django secret key (auto-generated if not provided)
+  secret_key: null
+  
+  # Database URL for Django (defaults to SQLite)
+  database_url: null
+
+# Logging Configuration
+logging:
+  # Log level: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+  level: "INFO"
+  
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log file path (null for console only)
+  file: null
+  
+  # Maximum log file size in MB
+  max_file_size: 10
+  
+  # Number of backup log files to keep
+  backup_count: 5
+
+# Performance Optimizations
+performance:
+  # Use async operations where possible
+  async_enabled: false
+  
+  # Thread pool size for background operations
+  thread_pool_size: 2
+  
+  # Memory limit for cached data (MB)
+  memory_limit: 100
+  
+  # Whether to compress stored data
+  compression: true

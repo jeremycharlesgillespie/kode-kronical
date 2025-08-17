@@ -1,0 +1,458 @@
+#!/usr/bin/env python3
+"""
+kode-kronical-daemon - System monitoring daemon for kode-kronical
+
+This daemon runs as a background service to continuously collect system and process
+performance metrics, making them available for kode-kronical to correlate with function timings.
+
+Usage:
+    kode-kronical-daemon start    - Start the daemon
+    kode-kronical-daemon stop     - Stop the daemon
+    kode-kronical-daemon restart  - Restart the daemon
+    kode-kronical-daemon status   - Check daemon status
+"""
+
+import os
+import sys
+import time
+import signal
+import argparse
+import json
+import logging
+import psutil
+from pathlib import Path
+from datetime import datetime
+from typing import Optional
+
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from kode_kronical.system_monitor import SystemMonitor
+from kode_kronical.config import get_config
+from kode_kronical.system_dynamodb import SystemDynamoDBService
+from kode_kronical.systems_registry import SystemsRegistryService
+
+
+class KodeKronicalDaemon:
+    """Main daemon class for system monitoring."""
+    
+    def __init__(self, config_path: Optional[str] = None):
+        self.config = self._load_config(config_path)
+        self.pid_file = Path(self.config.get('daemon', {}).get('pid_file', '/var/run/kode-kronical-daemon.pid'))
+        self.log_file = Path(self.config.get('daemon', {}).get('log_file', '/var/log/kode-kronical-daemon.log'))
+        self.data_dir = Path(self.config.get('daemon', {}).get('data_dir', '/var/lib/kode-kronical'))
+        
+        # Ensure directories exist
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Setup logging
+        self._setup_logging()
+        
+        # System monitor instance
+        self.monitor = None
+        self.running = False
+        
+        # DynamoDB service (if enabled)
+        self.dynamodb_service = None
+        self.registry_service = None
+        if self.config.get('daemon', {}).get('enable_dynamodb_upload', False):
+            table_name = self.config.get('daemon', {}).get('dynamodb_table_name', 'kode-kronical-system')
+            region = self.config.get('daemon', {}).get('dynamodb_region', 'us-east-1')
+            self.dynamodb_service = SystemDynamoDBService(table_name, region)
+            
+            # Initialize systems registry service
+            registry_table_name = self.config.get('daemon', {}).get('registry_table_name', 'kode-kronical-systems-registry')
+            self.registry_service = SystemsRegistryService(registry_table_name, region)
+        
+    def _load_config(self, config_path: Optional[str]) -> dict:
+        """Load daemon configuration."""
+        default_config = {
+            'daemon': {
+                'pid_file': '/var/run/kode-kronical-daemon.pid',
+                'log_file': '/var/log/kode-kronical-daemon.log',
+                'data_dir': '/var/lib/kode-kronical',
+                'sample_interval': 1.0,
+                'max_samples': 3600,
+                'data_retention_hours': 24,
+                'enable_network_monitoring': True,
+            }
+        }
+        
+        # Try to load from config file
+        if config_path and Path(config_path).exists():
+            try:
+                with open(config_path, 'r') as f:
+                    import yaml
+                    user_config = yaml.safe_load(f)
+                    # Merge configs
+                    for key in user_config:
+                        if key in default_config:
+                            default_config[key].update(user_config[key])
+                        else:
+                            default_config[key] = user_config[key]
+            except Exception as e:
+                print(f"Error loading config: {e}")
+        
+        return default_config
+    
+    def _setup_logging(self):
+        """Configure logging for the daemon."""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(self.log_file),
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+        self.logger = logging.getLogger('kode-kronical-daemon')
+    
+    def _write_pid(self):
+        """Write the current PID to the PID file."""
+        try:
+            self.pid_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.pid_file, 'w') as f:
+                f.write(str(os.getpid()))
+        except Exception as e:
+            self.logger.error(f"Failed to write PID file: {e}")
+            raise
+    
+    def _remove_pid(self):
+        """Remove the PID file."""
+        try:
+            if self.pid_file.exists():
+                self.pid_file.unlink()
+        except Exception as e:
+            self.logger.error(f"Failed to remove PID file: {e}")
+    
+    def _get_pid(self) -> Optional[int]:
+        """Get the daemon PID from the PID file."""
+        try:
+            if self.pid_file.exists():
+                with open(self.pid_file, 'r') as f:
+                    return int(f.read().strip())
+        except Exception:
+            pass
+        return None
+    
+    def _is_running(self, pid: int) -> bool:
+        """Check if a process with the given PID is running."""
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+    
+    def _setup_signal_handlers(self):
+        """Setup signal handlers for graceful shutdown."""
+        signal.signal(signal.SIGTERM, self._signal_handler)
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGHUP, self._reload_handler)
+    
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals."""
+        self.logger.info(f"Received signal {signum}, shutting down...")
+        self.running = False
+    
+    def _reload_handler(self, signum, frame):
+        """Handle reload signal (SIGHUP)."""
+        self.logger.info("Received SIGHUP, reloading configuration...")
+        # In a real implementation, we would reload config here
+    
+    def _daemonize(self):
+        """Daemonize the process."""
+        # First fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                # Exit first parent
+                sys.exit(0)
+        except OSError as e:
+            self.logger.error(f"First fork failed: {e}")
+            sys.exit(1)
+        
+        # Decouple from parent environment
+        os.chdir('/')
+        os.setsid()
+        os.umask(0)
+        
+        # Second fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                # Exit second parent
+                sys.exit(0)
+        except OSError as e:
+            self.logger.error(f"Second fork failed: {e}")
+            sys.exit(1)
+        
+        # Redirect standard file descriptors
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        # Close file descriptors
+        devnull = '/dev/null'
+        si = open(devnull, 'r')
+        so = open(devnull, 'a+')
+        se = open(devnull, 'a+')
+        
+        os.dup2(si.fileno(), sys.stdin.fileno())
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        os.dup2(se.fileno(), sys.stderr.fileno())
+    
+    def _collect_network_metrics(self) -> dict:
+        """Collect network metrics that don't require special permissions."""
+        try:
+            # Get system-wide network I/O stats (no permissions required)
+            net_io = psutil.net_io_counters()
+            
+            metrics = {
+                'bytes_sent': net_io.bytes_sent,
+                'bytes_recv': net_io.bytes_recv,
+                'packets_sent': net_io.packets_sent,
+                'packets_recv': net_io.packets_recv,
+            }
+            
+            # Try to get connection count, but don't fail if permissions are denied
+            try:
+                net_connections = len(psutil.net_connections())
+                metrics['active_connections'] = net_connections
+            except (psutil.AccessDenied, PermissionError):
+                # On macOS, this requires elevated permissions
+                # Skip connection count rather than failing completely
+                self.logger.debug("Cannot collect network connection count (insufficient permissions)")
+                pass
+            
+            return metrics
+        except Exception as e:
+            self.logger.error(f"Failed to collect network I/O metrics: {e}")
+            return {}
+    
+    def _save_metrics_batch(self, metrics: list):
+        """Save a batch of metrics to disk."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = self.data_dir / f"metrics_{timestamp}.json"
+        
+        try:
+            with open(filename, 'w') as f:
+                json.dump(metrics, f, indent=2)
+            self.logger.debug(f"Saved metrics batch to {filename}")
+        except Exception as e:
+            self.logger.error(f"Failed to save metrics: {e}")
+    
+    def _cleanup_old_data(self):
+        """Remove old data files based on retention policy."""
+        retention_hours = self.config['daemon'].get('data_retention_hours', 24)
+        cutoff_time = time.time() - (retention_hours * 3600)
+        
+        try:
+            for file in self.data_dir.glob("metrics_*.json"):
+                if file.stat().st_mtime < cutoff_time:
+                    file.unlink()
+                    self.logger.debug(f"Removed old data file: {file}")
+        except Exception as e:
+            self.logger.error(f"Failed to cleanup old data: {e}")
+    
+    def run(self):
+        """Main daemon loop."""
+        self.logger.info("kode-kronical-daemon starting...")
+        self.running = True
+        
+        # Initialize system monitor
+        self.monitor = SystemMonitor(
+            sample_interval=self.config['daemon'].get('sample_interval', 1.0),
+            max_samples=self.config['daemon'].get('max_samples', 3600),
+            data_dir=str(self.data_dir)
+        )
+        
+        # Start monitoring
+        self.monitor.start_monitoring()
+        
+        # Track Python processes
+        for proc in psutil.process_iter(['pid', 'name']):
+            try:
+                if 'python' in proc.info['name'].lower():
+                    self.monitor.track_process(proc.info['pid'])
+            except:
+                pass
+        
+        metrics_buffer = []
+        last_save_time = time.time()
+        last_cleanup_time = time.time()
+        
+        while self.running:
+            try:
+                # Collect current metrics
+                current_metrics = self.monitor.get_current_metrics()
+                
+                # Add network metrics if enabled
+                if self.config['daemon'].get('enable_network_monitoring', True):
+                    current_metrics['network'] = self._collect_network_metrics()
+                
+                # Add timestamp
+                current_metrics['timestamp'] = time.time()
+                metrics_buffer.append(current_metrics)
+                
+                # Save metrics periodically (every 60 seconds)
+                upload_interval = self.config.get('daemon', {}).get('upload_interval', 60)
+                if time.time() - last_save_time > upload_interval:
+                    if metrics_buffer:
+                        # Save to local file
+                        self._save_metrics_batch(metrics_buffer)
+                        
+                        # Upload to DynamoDB if enabled
+                        if self.dynamodb_service:
+                            from kode_kronical.hostname_utils import get_normalized_hostname
+                            hostname = get_normalized_hostname()
+                            try:
+                                # Upload system metrics
+                                if self.dynamodb_service.upload_system_metrics(metrics_buffer, hostname):
+                                    self.logger.info(f"Successfully uploaded {len(metrics_buffer)} metrics to DynamoDB with compression")
+                                    
+                                    # Update systems registry if available
+                                    if self.registry_service and metrics_buffer:
+                                        # Register/update system in registry
+                                        self.registry_service.register_system(hostname)
+                                        
+                                        # Update with latest metrics from the batch
+                                        latest_metrics = metrics_buffer[-1]  # Get most recent metrics
+                                        if 'system' in latest_metrics:
+                                            cpu_percent = latest_metrics['system'].get('cpu_percent', 0)
+                                            memory_percent = latest_metrics['system'].get('memory_percent', 0)
+                                            self.registry_service.update_system_metrics(hostname, cpu_percent, memory_percent)
+                                            self.logger.debug(f"Updated registry for {hostname}: CPU={cpu_percent}%, Memory={memory_percent}%")
+                                else:
+                                    self.logger.warning("Failed to upload metrics to DynamoDB, keeping in buffer")
+                            except Exception as e:
+                                self.logger.error(f"Error uploading to DynamoDB: {e}")
+                        
+                        metrics_buffer = []
+                    last_save_time = time.time()
+                
+                # Cleanup old data periodically (every hour)
+                if time.time() - last_cleanup_time > 3600:
+                    self._cleanup_old_data()
+                    last_cleanup_time = time.time()
+                
+                # Sleep until next sample
+                time.sleep(self.config['daemon'].get('sample_interval', 1.0))
+                
+            except Exception as e:
+                self.logger.error(f"Error in main loop: {e}")
+                time.sleep(1)
+        
+        # Cleanup
+        self.logger.info("Shutting down...")
+        if metrics_buffer:
+            self._save_metrics_batch(metrics_buffer)
+        
+        self.monitor.stop_monitoring()
+        self._remove_pid()
+        self.logger.info("kode-kronical-daemon stopped")
+    
+    def start(self):
+        """Start the daemon."""
+        # Check if already running
+        pid = self._get_pid()
+        if pid and self._is_running(pid):
+            print(f"Daemon already running with PID {pid}")
+            sys.exit(1)
+        
+        print("Starting kode-kronical-daemon...")
+        
+        # Daemonize
+        self._daemonize()
+        
+        # Write PID file
+        self._write_pid()
+        
+        # Setup signal handlers
+        self._setup_signal_handlers()
+        
+        # Run the daemon
+        self.run()
+    
+    def stop(self):
+        """Stop the daemon."""
+        pid = self._get_pid()
+        if not pid:
+            print("Daemon not running")
+            return
+        
+        if not self._is_running(pid):
+            print("Daemon not running (stale PID file)")
+            self._remove_pid()
+            return
+        
+        print(f"Stopping daemon (PID {pid})...")
+        try:
+            os.kill(pid, signal.SIGTERM)
+            # Wait for process to terminate
+            for _ in range(10):
+                if not self._is_running(pid):
+                    print("Daemon stopped")
+                    return
+                time.sleep(0.5)
+            
+            # Force kill if still running
+            os.kill(pid, signal.SIGKILL)
+            print("Daemon killed")
+        except Exception as e:
+            print(f"Failed to stop daemon: {e}")
+    
+    def restart(self):
+        """Restart the daemon."""
+        self.stop()
+        time.sleep(1)
+        self.start()
+    
+    def status(self):
+        """Check daemon status."""
+        pid = self._get_pid()
+        if not pid:
+            print("Daemon not running")
+            return
+        
+        if self._is_running(pid):
+            print(f"Daemon running with PID {pid}")
+            
+            # Show some stats
+            try:
+                proc = psutil.Process(pid)
+                print(f"  CPU: {proc.cpu_percent()}%")
+                print(f"  Memory: {proc.memory_info().rss / 1024 / 1024:.1f} MB")
+                print(f"  Uptime: {datetime.now() - datetime.fromtimestamp(proc.create_time())}")
+            except:
+                pass
+        else:
+            print("Daemon not running (stale PID file)")
+            self._remove_pid()
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(description='kode-kronical system monitoring daemon')
+    parser.add_argument('command', choices=['start', 'stop', 'restart', 'status'],
+                        help='Daemon command')
+    parser.add_argument('-c', '--config', help='Configuration file path',
+                        default='/etc/kode-kronical/daemon.yaml')
+    
+    args = parser.parse_args()
+    
+    # Create daemon instance
+    daemon = KodeKronicalDaemon(args.config)
+    
+    # Execute command
+    if args.command == 'start':
+        daemon.start()
+    elif args.command == 'stop':
+        daemon.stop()
+    elif args.command == 'restart':
+        daemon.restart()
+    elif args.command == 'status':
+        daemon.status()
+
+
+if __name__ == '__main__':
+    main()

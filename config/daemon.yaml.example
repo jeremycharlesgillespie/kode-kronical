@@ -1,0 +1,80 @@
+# Example kode-kronical-daemon configuration file
+# Copy this to /etc/kode-kronical/daemon.yaml and modify as needed
+
+daemon:
+  # PID file location (requires appropriate permissions)
+  pid_file: /var/run/kode-kronical-daemon.pid
+  
+  # Log file location
+  log_file: /var/log/kode-kronical-daemon.log
+  
+  # Data directory for storing metrics
+  # For user installation: ~/.kode-kronical/data
+  # For system installation: /var/lib/kode-kronical
+  data_dir: ~/.kode-kronical/data
+  
+  # Sampling interval in seconds (lower = more detailed, higher CPU usage)
+  sample_interval: 1.0
+  
+  # Maximum number of samples to keep in memory before saving to disk
+  max_samples: 3600  # 1 hour at 1 second intervals
+  
+  # How long to keep data files before deletion
+  data_retention_hours: 168  # 1 week
+  
+  # Enable network monitoring (requires additional permissions on some systems)
+  enable_network_monitoring: true
+
+# System monitoring settings
+monitoring:
+  # Automatically track all Python processes
+  auto_track_python: true
+  
+  # Additional process names to track (exact match)
+  track_processes:
+    - node
+    - java
+    - ruby
+    - go
+  
+  # Resource usage thresholds for logging warnings
+  cpu_alert_threshold: 90      # Log when CPU > 90%
+  memory_alert_threshold: 85   # Log when memory > 85%
+
+# Data export settings
+export:
+  # Export format: json, csv, or parquet
+  format: json
+  
+  # Compress exported files
+  compress: true
+  
+  # Number of samples per export file
+  batch_size: 1000
+
+# Advanced integration settings (optional)
+integration:
+  # Enable REST API for querying metrics
+  enable_api: false
+  api_port: 9090
+  api_host: 127.0.0.1
+  
+  # Enable Prometheus metrics endpoint
+  enable_prometheus: false
+  prometheus_port: 9091
+  
+  # Enable StatsD metric forwarding
+  enable_statsd: false
+  statsd_host: 127.0.0.1
+  statsd_port: 8125
+
+# Security settings
+security:
+  # Restrict API access to specific IPs
+  api_allowed_ips:
+    - 127.0.0.1
+    - 10.0.0.0/8
+  
+  # Enable API authentication
+  api_auth_enabled: false
+  # api_auth_token: "your-secret-token-here"

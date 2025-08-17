@@ -1,0 +1,58 @@
+# KodeKronical Configuration
+# Using AWS DynamoDB with kode-kronical branded tables
+
+# Core KodeKronical Settings
+kode_kronical:
+  enabled: true
+  debug: false
+  min_execution_time: 0.001  # Only track functions > 1ms
+  max_tracked_calls: 10000
+  enable_system_monitoring: true  # Enable daemon integration
+
+# AWS DynamoDB Configuration
+aws:
+  region: "us-east-1"
+  table_name: "kode-kronical-data"
+  system_table_name: "kode-kronical-system"
+  metadata_table_name: "kode-kronical-metadata"
+  registry_table_name: "kode-kronical-systems-registry"
+  profile: null  # Use default AWS profile
+  auto_create_table: true
+
+# Disable local storage since we're using DynamoDB
+local:
+  enabled: false
+
+# Upload Configuration
+upload:
+  strategy: "on_exit"  # on_exit, real_time, batch, manual
+  batch_size: 100
+  retry_attempts: 3
+  timeout: 30
+
+# Performance Tracking Filters
+filters:
+  # Modules to exclude from tracking (common libraries that aren't your code)
+  exclude_modules:
+    - "boto3"
+    - "requests"
+    - "urllib3"
+    - "logging"
+  
+  # Function patterns to exclude (regex patterns)
+  exclude_functions:
+    - "^_.*"      # Private functions (starting with _)
+    - "^test_.*"  # Test functions
+  
+  # Track function arguments (may impact performance)
+  track_arguments: false
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+
+# System monitoring daemon configuration
+daemon:
+  sample_interval: 1.0
+  enable_network_monitoring: true
+  data_retention_hours: 24

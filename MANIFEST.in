@@ -1,0 +1,39 @@
+# Include the README and license
+include README.md
+include LICENSE
+
+# Include configuration files
+include config/default.yaml
+include .kode-kronical.yaml.example
+
+# Include package metadata
+include pyproject.toml
+
+# Include source files
+recursive-include src/py_perf *.py *.yaml *.yml
+
+# Exclude unnecessary files
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude requirements.txt
+exclude requirements-dev.txt
+
+# Exclude Django dashboard and tests
+exclude manage.py
+exclude test_*.py
+exclude tester.py
+recursive-exclude pyperfweb *
+recursive-exclude tests *
+exclude db.sqlite3
+
+# Exclude development/build files
+recursive-exclude .git *
+recursive-exclude __pycache__ *
+recursive-exclude *.egg-info *
+recursive-exclude build *
+recursive-exclude dist *
+recursive-exclude .venv *
+recursive-exclude venv *
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *~

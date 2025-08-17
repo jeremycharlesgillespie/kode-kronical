@@ -5,17 +5,19 @@ This directory contains GitHub Actions workflows for automated testing and publi
 ## Workflows
 
 ### 🚀 `publish.yml` - Build and Publish
-**Triggers**: Push to `main` branch
+**Triggers**: Push to `main` or `test` branch
 **What it does**:
 1. **Tests** - Runs tests across Python 3.8-3.12
 2. **Version bump** - Auto-increments version using your `build_package.py`
 3. **Build** - Creates wheel and source distribution
-4. **Publish** - Uploads to Test PyPI and PyPI
-5. **Release** - Creates GitHub release with auto-generated notes
-6. **Commit** - Pushes version bump back to repo
+4. **Publish** - 
+   - `main` branch → **PyPI** (production)
+   - `test` branch → **Test PyPI** (testing)
+5. **Release** - Creates GitHub release (main branch only)
+6. **Commit** - Pushes version bump back to repo (main branch only)
 
 ### 🧪 `test.yml` - Run Tests Only
-**Triggers**: Pull requests to `main`
+**Triggers**: Pull requests to `main` or `test`
 **What it does**:
 1. **Code quality** - Runs black, isort, flake8
 2. **Import tests** - Verifies package imports correctly
@@ -35,12 +37,19 @@ This directory contains GitHub Actions workflows for automated testing and publi
 3. Open pull request → triggers `test.yml`
 4. Review and merge → triggers `publish.yml`
 
-### For Releases
-Just push to main! The workflow will:
+### For Testing
+Push to `test` branch:
 - ✅ Run all tests
 - ✅ Auto-increment version
 - ✅ Build package  
-- ✅ Publish to PyPI
+- ✅ Publish to **Test PyPI**
+
+### For Production Releases
+Push to `main` branch:
+- ✅ Run all tests
+- ✅ Auto-increment version
+- ✅ Build package  
+- ✅ Publish to **PyPI**
 - ✅ Create GitHub release
 - ✅ Update version in repo
 

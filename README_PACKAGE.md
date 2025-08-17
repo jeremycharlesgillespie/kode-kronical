@@ -1,4 +1,4 @@
-# kode-kronical-jg
+# kode-kronical
 
 A lightweight Python performance tracking library with automatic data collection and visualization.
 
@@ -8,10 +8,10 @@ A lightweight Python performance tracking library with automatic data collection
 
 ```bash
 # Install from PyPI
-pip install kode-kronical-jg
+pip install kode-kronical
 
 # For test installations from Test PyPI
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kode-kronical-jg
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kode-kronical
 ```
 
 ### Basic Usage
@@ -223,7 +223,7 @@ python -c "from version_manager import get_current_version; print(get_current_ve
 ### Related Projects
 
 - **[kode-kronical-viewer](https://github.com/jeremycharlesgillespie/kode-kronical-viewer)** - Django web dashboard for data visualization
-- **[kode-kronical on PyPI](https://pypi.org/project/kode-kronical-jg/)** - Published package on PyPI
+- **[kode-kronical on PyPI](https://pypi.org/project/kode-kronical/)** - Published package on PyPI
 
 ## Contributing
 

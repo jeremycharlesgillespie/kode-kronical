@@ -1,4 +1,4 @@
-__version__ = "0.2.2"
+__version__ = "0.2.5"
 __author__ = "Jeremy Gillespie"
 __email__ = "metalgear386@googlemail.com"
 

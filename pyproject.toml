@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kode-kronical"
-version = "0.2.2"
+version = "0.2.5"
 authors = [
     {name = "Jeremy Gillespie", email = "metalgear386@googlemail.com"},
 ]
@@ -30,10 +30,11 @@ classifiers = [
 keywords = ["performance", "profiling", "monitoring", "timing", "benchmarking"]
 dependencies = [
     "omegaconf>=2.3.0",
+    "psutil>=5.9.0",
+    "boto3>=1.26.0",
 ]
 
 [project.optional-dependencies]
-aws = ["boto3>=1.26.0"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -70,7 +71,7 @@ profile = "black"
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "0.2.2"
+python_version = "0.2.5"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

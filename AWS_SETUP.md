@@ -6,10 +6,10 @@ First, ensure you have the necessary dependencies:
 
 ```bash
 # Install kode-kronical with AWS dependencies
-pip install kode-kronical-jg boto3
+pip install kode-kronical boto3
 
 # Or install from Test PyPI
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kode-kronical-jg boto3
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kode-kronical boto3
 ```
 
 ## Required AWS Role/Policy

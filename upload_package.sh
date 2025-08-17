@@ -9,7 +9,7 @@ echo "🚀 kode-kronical Package Upload Script"
 echo "================================"
 
 # Activate virtual environment
-source venv/bin/activate
+source .venv/bin/activate
 
 # Read current version (no incrementing)
 echo "📋 Reading current version from pyproject.toml..."
@@ -73,7 +73,7 @@ except:
 # Show package information
 echo ""
 echo "📦 Package Information:"
-echo "   Name: kode-kronical-jg"
+echo "   Name: kode-kronical"
 echo "   Version: $CURRENT_VERSION"
 echo "   Built files:"
 ls -la dist/
@@ -96,8 +96,8 @@ case $choice in
         fi
         echo ""
         echo "✅ Uploaded to Test PyPI!"
-        echo "🔗 View at: https://test.pypi.org/project/kode-kronical-jg/"
-        echo "📥 Test install with: pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kode-kronical-jg"
+        echo "🔗 View at: https://test.pypi.org/project/kode-kronical/"
+        echo "📥 Test install with: pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kode-kronical"
         ;;
     2)
         echo "⚠️  This will upload to PRODUCTION PyPI!"
@@ -111,8 +111,8 @@ case $choice in
             fi
             echo ""
             echo "✅ Uploaded to PyPI!"
-            echo "🔗 View at: https://pypi.org/project/kode-kronical-jg/"
-            echo "📥 Install with: pip install kode-kronical-jg"
+            echo "🔗 View at: https://pypi.org/project/kode-kronical/"
+            echo "📥 Install with: pip install kode-kronical"
         else
             echo "❌ Upload cancelled."
         fi

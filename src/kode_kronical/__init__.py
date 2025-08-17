@@ -1,4 +1,4 @@
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 __author__ = "Jeremy Gillespie"
 __email__ = "metalgear386@googlemail.com"
 
@@ -10,3 +10,6 @@ from .failure_capture import capture_failure, log_failure, get_failure_stats
 __all__ = ["KodeKronical", "SystemMonitor", "ProcessTracker", "KodeKronicalSystemMonitor", 
            "enable_enhanced_exceptions", "disable_enhanced_exceptions",
            "capture_failure", "log_failure", "get_failure_stats"]
+
+# Automatically enable enhanced exceptions when the module is imported
+enable_enhanced_exceptions()

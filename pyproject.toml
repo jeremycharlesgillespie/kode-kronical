@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kode-kronical"
-version = "0.2.5"
+version = "0.2.7"
 authors = [
     {name = "Jeremy Gillespie", email = "metalgear386@googlemail.com"},
 ]
@@ -71,7 +71,7 @@ profile = "black"
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "0.2.5"
+python_version = "0.2.7"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

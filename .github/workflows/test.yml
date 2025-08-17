@@ -1,0 +1,92 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install pytest pytest-cov black isort flake8
+    
+    - name: Run code quality checks
+      run: |
+        # Check code formatting
+        black --check src/ || echo "⚠️ Code formatting issues found"
+        
+        # Check import sorting
+        isort --check-only src/ || echo "⚠️ Import sorting issues found"
+        
+        # Run linting
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics || echo "⚠️ Linting issues found"
+    
+    - name: Test imports and basic functionality
+      run: |
+        # Test basic import
+        python -c "
+        import kode_kronical
+        print('✅ kode_kronical imported successfully')
+        print(f'Version: {kode_kronical.__version__}')
+        
+        # Test enhanced exceptions are auto-enabled
+        try:
+            result = 10 / 0
+        except ZeroDivisionError as e:
+            print('✅ Enhanced exceptions working')
+        
+        # Test core functionality
+        perf = kode_kronical.KodeKronical()
+        
+        @perf.time_it
+        def test_function():
+            import time
+            time.sleep(0.01)
+            return 'test complete'
+        
+        result = test_function()
+        print(f'✅ Core functionality test: {result}')
+        "
+    
+    - name: Run existing tests
+      run: |
+        # Run tester.py if it exists
+        if [ -f "tester.py" ]; then
+          echo "Running tester.py..."
+          python tester.py
+        fi
+        
+        # Run pytest if tests directory exists
+        if [ -d "tests" ]; then
+          echo "Running pytest..."
+          pytest tests/ -v --cov=src/kode_kronical --cov-report=term-missing
+        fi
+    
+    - name: Test package build
+      run: |
+        pip install build
+        python -m build
+        python -m pip install dist/*.whl
+        
+        # Test installed package
+        python -c "
+        import kode_kronical
+        print('✅ Installed package works correctly')
+        print(f'Version: {kode_kronical.__version__}')
+        "

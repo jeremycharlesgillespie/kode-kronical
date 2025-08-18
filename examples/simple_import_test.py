@@ -23,5 +23,5 @@ def divide_by_zero():
 
 # This should show enhanced exception output
 print("Testing enhanced exceptions by just importing kode-kronical...")
-perf = KodeKronical()  # Initialize KodeKronical
+kode = KodeKronical()  # Initialize KodeKronical
 divide_by_zero()  # This will trigger the enhanced exception handler

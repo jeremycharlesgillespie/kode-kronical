@@ -6,8 +6,8 @@ Test script to verify kode-kronical works with zero setup - no configuration nee
 import sys
 import os
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Add src to path for imports (tests are now in tests/ subdirectory)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 print("🧪 Testing kode-kronical zero-setup functionality...")
 print("=" * 60)
@@ -24,7 +24,7 @@ except Exception as e:
 # Test 2: Initialize KodeKronical without any config
 print("\n2️⃣  Testing KodeKronical initialization without config...")
 try:
-    perf = KodeKronical()
+    kode = KodeKronical()
     print("✅ KodeKronical initialization successful")
 except Exception as e:
     print(f"❌ KodeKronical initialization failed: {e}")
@@ -32,7 +32,7 @@ except Exception as e:
 
 # Test 3: Use timing decorator
 print("\n3️⃣  Testing timing decorator...")
-@perf.time_it
+@kode.time_it
 def sample_function(n):
     """A sample function to time."""
     total = 0
@@ -49,7 +49,7 @@ except Exception as e:
 # Test 4: Get results
 print("\n4️⃣  Testing results retrieval...")
 try:
-    results = perf.get_results()
+    results = kode.get_results()
     print(f"✅ Results retrieved: {len(results)} timing records")
     
     if results:
@@ -93,7 +93,7 @@ except Exception as e:
 print("\n7️⃣  Testing behavior without AWS credentials...")
 try:
     # Try to create another KodeKronical instance
-    perf2 = KodeKronical()
+    kode2 = KodeKronical()
     print("✅ Works without AWS credentials (using local storage fallback)")
 except Exception as e:
     print(f"❌ Failed without AWS credentials: {e}")
@@ -101,12 +101,12 @@ except Exception as e:
 # Test 8: Test summary and cleanup
 print("\n8️⃣  Testing summary and cleanup...")
 try:
-    summary = perf.get_summary()
+    summary = kode.get_summary()
     print(f"✅ Summary generated: {summary.get('call_count', 0)} calls tracked")
     
     # Test clearing results
-    perf.clear_results()
-    results_after_clear = perf.get_results()
+    kode.clear_results()
+    results_after_clear = kode.get_results()
     print(f"✅ Cleanup works: {len(results_after_clear)} results after clear")
 except Exception as e:
     print(f"❌ Summary/cleanup failed: {e}")
@@ -126,8 +126,8 @@ print()
 print("📋 To use kode-kronical in your project:")
 print("   1. pip install kode-kronical")
 print("   2. from kode_kronical import KodeKronical")
-print("   3. perf = KodeKronical()")
-print("   4. @perf.time_it")
+print("   3. kode = KodeKronical()")
+print("   4. @kode.time_it")
 print("      def your_function():")
 print("          pass")
 print()

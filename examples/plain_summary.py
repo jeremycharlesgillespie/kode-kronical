@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from kode_kronical import KodeKronical
 
@@ -27,7 +27,7 @@ def main():
     """Test with a different error type."""
     print("Testing plain language summary with ZeroDivisionError...")
     
-    perf = KodeKronical()
+    kode = KodeKronical()
     
     # Data that will cause division by zero
     test_numbers = [-1, -2, -3]  # No positive numbers

@@ -1,0 +1,80 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0
+rootdir: /Users/gman/code/kode-kronical-all/kode-kronical
+configfile: pyproject.toml
+plugins: cov-6.2.1
+collected 8 items
+
+tests/test_globals_disabled.py F                                         [ 12%]
+tests/test_library_errors.py ....F                                       [ 75%]
+tests/test_multiple_oracle_errors.py .                                   [ 87%]
+tests/test_no_permissions.py .                                           [100%]
+
+=================================== FAILURES ===================================
+________________________________ test_function _________________________________
+
+    def test_function():
+        """Function that will cause an exception."""
+        local_var = "local value"
+>       return local_var / CONFIG  # Type error
+               ^^^^^^^^^^^^^^^^^^
+E       TypeError: unsupported operand type(s) for /: 'str' and 'dict'
+
+tests/test_globals_disabled.py:21: TypeError
+____________________________ test_actual_exception _____________________________
+
+    def test_actual_exception():
+        """Test with an actual exception to see the full enhanced trace."""
+        print("\n\n🚨 Testing Full Enhanced Exception Trace")
+        print("=" * 55)
+        print("\nTriggering a simulated Oracle connection error...")
+    
+        # This will trigger the enhanced exception handler
+        connection_string = "oracle://user:pass@localhost:1521/xe"
+        timeout = 30
+    
+        # Simulate Oracle connection error
+>       raise Exception("ORA-12154: TNS:could not resolve the connect identifier specified")
+E       Exception: ORA-12154: TNS:could not resolve the connect identifier specified
+
+tests/test_library_errors.py:125: Exception
+----------------------------- Captured stdout call -----------------------------
+
+
+🚨 Testing Full Enhanced Exception Trace
+=======================================================
+
+Triggering a simulated Oracle connection error...
+=============================== warnings summary ===============================
+tests/test_no_permissions.py::test_function
+  /Users/gman/code/kode-kronical-all/kode-kronical/.venv/lib/python3.13/site-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_no_permissions.py::test_function returned <class 'int'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.13.5-final-0 _______________
+
+Name                                            Stmts   Miss  Cover   Missing
+-----------------------------------------------------------------------------
+src/kode_kronical/__init__.py                       9      0   100%
+src/kode_kronical/config.py                       103     28    73%   68-70, 104-106, 125-128, 149-152, 167-168, 178, 186, 194, 198, 202, 206, 219, 223-224, 230, 236, 241, 279-280
+src/kode_kronical/core.py                         382    258    32%   16-17, 31-36, 63, 67-68, 74-76, 86-87, 95-96, 116, 128-140, 148-154, 165-196, 200-201, 205-232, 249, 270-302, 307, 318, 323-329, 340-346, 360, 376-379, 402, 406, 410, 414-418, 422-456, 460-505, 509-551, 555-573, 577-609, 615, 619-624, 628-633, 637-654, 658-681, 685-728, 752-753, 757-758
+src/kode_kronical/daemon.py                       372    372     0%   9-700
+src/kode_kronical/daemon_client.py                125     82    34%   42, 60-61, 66, 75, 79-113, 125-165, 177-214, 222-237, 245-251, 255, 259-281
+src/kode_kronical/exception_handler.py            418    314    25%   44-146, 158-178, 190-231, 247-324, 330-406, 459-466, 470, 472, 474-491, 513, 517, 525, 534, 537, 540, 549, 552, 558, 564, 567, 570, 576-590, 608, 617, 623, 628-638, 643-653, 665, 670-683, 687-700, 704-724, 738-756, 768-771, 799
+src/kode_kronical/failure_capture.py              173     59    66%   39, 48, 53-58, 62-72, 77, 79-84, 95-96, 100-113, 138-139, 143-145, 239-243, 270, 272, 274, 276, 282, 286, 290, 307-309, 354, 359
+src/kode_kronical/hostname_utils.py                70     70     0%   15-161
+src/kode_kronical/metrics_compression.py          160    160     0%   7-396
+src/kode_kronical/optimized_system_storage.py     135    135     0%   11-343
+src/kode_kronical/system_dynamodb.py              142    142     0%   5-301
+src/kode_kronical/system_monitor.py               176    145    18%   29-45, 49-55, 59-62, 66-69, 73-74, 78-101, 105-126, 130-160, 175-202, 215-226, 230-239, 246-247, 251, 255-265, 273-275, 283-303, 311-333
+src/kode_kronical/systems_registry.py              70     70     0%   7-209
+-----------------------------------------------------------------------------
+TOTAL                                            2335   1835    21%
+Coverage HTML written to dir htmlcov
+=========================== short test summary info ============================
+FAILED tests/test_globals_disabled.py::test_function - TypeError: unsupported...
+FAILED tests/test_library_errors.py::test_actual_exception - Exception: ORA-1...
+==================== 2 failed, 6 passed, 1 warning in 0.39s ====================

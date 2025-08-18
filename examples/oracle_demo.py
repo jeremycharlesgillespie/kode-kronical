@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from kode_kronical import KodeKronical
 
@@ -17,7 +17,7 @@ def main():
     print("=" * 50)
     
     # Initialize KodeKronical - this enables enhanced exception handling
-    perf = KodeKronical()
+    kode = KodeKronical()
     
     print("✅ Enhanced exception handling enabled")
     print("\n🚨 Simulating Oracle connection error...")

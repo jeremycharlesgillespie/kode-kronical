@@ -140,14 +140,14 @@ All installation scripts perform the following operations:
 - Configuration: `/usr/local/etc/kode-kronical/`
 - Data: `/usr/local/var/kode-kronical/`
 - Logs: `/usr/local/var/log/kode-kronical/`
-- Service: `/Library/LaunchDaemons/com.pyperf.daemon.plist`
+- Service: `/Library/LaunchDaemons/com.kodekronical.daemon.plist`
 
 **User Installation Paths:**
 - Executable: `~/.local/bin/kode-kronical-daemon`
 - Configuration: `~/.config/kode-kronical/`
 - Data: `~/.local/share/kode-kronical/`
 - Logs: `~/.local/share/kode-kronical/logs/`
-- Service: `~/Library/LaunchAgents/com.pyperf.daemon.plist`
+- Service: `~/Library/LaunchAgents/com.kodekronical.daemon.plist`
 
 ## Configuration
 
@@ -192,7 +192,7 @@ Get-ChildItem "C:\ProgramData\kode-kronical\data"
 
 **macOS:**
 ```bash
-launchctl list | grep pyperf
+launchctl list | grep kodekronical
 ls -la /usr/local/var/kode-kronical/  # or ~/.local/share/kode-kronical/ for user install
 ```
 
@@ -205,13 +205,13 @@ from kode_kronical import KodeKronical
 import time
 
 # Initialize KodeKronical
-perf = KodeKronical()
+kode = KodeKronical()
 
 # Check daemon connection
-config_info = perf.get_config_info()
+config_info = kode.get_config_info()
 print("Daemon status:", config_info.get('daemon'))
 
-@perf.time_it
+@kode.time_it
 def test_function():
     time.sleep(0.1)
     return "test"
@@ -220,7 +220,7 @@ def test_function():
 result = test_function()
 
 # Get enhanced summary with system context
-summary = perf.get_enhanced_summary()
+summary = kode.get_enhanced_summary()
 print("System monitoring enabled:", summary.get('system_monitoring_enabled'))
 ```
 
@@ -262,14 +262,14 @@ sudo ./scripts/stop-daemon-macos.sh
 ### macOS (Manual launchctl)
 ```bash
 # System service
-sudo launchctl load /Library/LaunchDaemons/com.pyperf.daemon.plist    # Start
-sudo launchctl unload /Library/LaunchDaemons/com.pyperf.daemon.plist  # Stop
+sudo launchctl load /Library/LaunchDaemons/com.kodekronical.daemon.plist    # Start
+sudo launchctl unload /Library/LaunchDaemons/com.kodekronical.daemon.plist  # Stop
 
 # User service
-launchctl load ~/Library/LaunchAgents/com.pyperf.daemon.plist          # Start
-launchctl unload ~/Library/LaunchAgents/com.pyperf.daemon.plist        # Stop
+launchctl load ~/Library/LaunchAgents/com.kodekronical.daemon.plist          # Start
+launchctl unload ~/Library/LaunchAgents/com.kodekronical.daemon.plist        # Stop
 
-launchctl list | grep pyperf                                           # Status
+launchctl list | grep kodekronical                                           # Status
 tail -f /usr/local/var/log/kode-kronical/daemon.log                         # Logs
 ```
 

@@ -52,7 +52,7 @@ class SystemDynamoDBService:
                 logger.info(f"Creating DynamoDB table {self.table_name}")
                 
                 # Use optimized table creation for v2 tables
-                if self.table_name == "kode-kronical-system-v2":
+                if self.table_name == "kode-kronical-system":
                     from .optimized_system_storage import OptimizedSystemStorage
                     storage = OptimizedSystemStorage(self.table_name, self.region)
                 else:
@@ -107,7 +107,7 @@ class SystemDynamoDBService:
                 return True
             
             # Check if we're using the optimized table structure
-            if self.table_name == "kode-kronical-system-v2":
+            if self.table_name == "kode-kronical-system":
                 return self._upload_optimized_format(metrics_batch, hostname)
             else:
                 return self._upload_legacy_format(metrics_batch, hostname)

@@ -58,7 +58,7 @@ def main():
     print()
     
     # Initialize KodeKronical - this automatically enables enhanced exception handling
-    perf = KodeKronical()
+    kode = KodeKronical()
     print("KodeKronical initialized - enhanced exception handling is now active")
     print()
     print("Current global variables:")

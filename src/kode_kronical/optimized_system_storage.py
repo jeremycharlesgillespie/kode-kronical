@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class OptimizedSystemStorage:
     """Optimized storage service for system metrics."""
     
-    def __init__(self, table_name: str = "kode-kronical-system-v2", region: str = "us-east-1"):
+    def __init__(self, table_name: str = "kode-kronical-system", region: str = "us-east-1"):
         """Initialize optimized DynamoDB service."""
         self.table_name = table_name
         self.region = region

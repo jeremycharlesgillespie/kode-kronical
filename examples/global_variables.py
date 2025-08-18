@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from kode_kronical.core import KodeKronical
 
@@ -63,7 +63,7 @@ def main():
     print("=" * 70)
     
     # Initialize KodeKronical - this enables enhanced exception handling
-    perf = KodeKronical()
+    kode = KodeKronical()
     
     print("Global variables defined:")
     print(f"  GLOBAL_CONFIG = {GLOBAL_CONFIG}")

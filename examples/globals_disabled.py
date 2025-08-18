@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from kode_kronical.core import KodeKronical
 
@@ -25,7 +25,7 @@ def main():
     print("Testing with global variables disabled...")
     
     # Initialize KodeKronical with globals disabled
-    perf = KodeKronical({
+    kode = KodeKronical({
         'kode_kronical': {
             'exception_show_globals': False
         }

@@ -13,9 +13,9 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Service configuration
-SYSTEM_PLIST="/Library/LaunchDaemons/com.pyperf.daemon.plist"
-USER_PLIST="$HOME/Library/LaunchAgents/com.pyperf.daemon.plist"
-SERVICE_NAME="com.pyperf.daemon"
+SYSTEM_PLIST="/Library/LaunchDaemons/com.kodekronical.daemon.plist"
+USER_PLIST="$HOME/Library/LaunchAgents/com.kodekronical.daemon.plist"
+SERVICE_NAME="com.kodekronical.daemon"
 
 # Logging functions
 log() {
@@ -201,8 +201,8 @@ try:
     import sys
     sys.path.insert(0, '$(pwd)/src')
     from kode_kronical import KodeKronical
-    perf = KodeKronical()
-    config_info = perf.get_config_info()
+    kode = KodeKronical()
+    config_info = kode.get_config_info()
     daemon_status = config_info.get('daemon', {})
     if daemon_status.get('running', False):
         print('✓ KodeKronical can connect to daemon')

@@ -18,12 +18,11 @@ exclude .pre-commit-config.yaml
 exclude requirements.txt
 exclude requirements-dev.txt
 
-# Exclude Django dashboard and tests
+# Exclude development and test files
 exclude manage.py
-exclude test_*.py
 exclude tester.py
-recursive-exclude pyperfweb *
 recursive-exclude tests *
+recursive-exclude pyperfweb *
 exclude db.sqlite3
 
 # Exclude development/build files

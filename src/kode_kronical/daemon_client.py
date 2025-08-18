@@ -43,7 +43,8 @@ class DaemonClient:
         else:
             self.data_dirs = [
                 Path('/var/lib/kode-kronical'),
-                Path.home() / '.kode-kronical' / 'data',
+                Path.home() / '.local' / 'share' / 'kode-kronical',  # New standard location
+                Path.home() / '.kode-kronical' / 'data',  # Legacy location
                 Path('./perf_data'),  # Fallback for development
             ]
         

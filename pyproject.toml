@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kode-kronical"
-version = "0.2.7"
+version = "0.3.1"
 authors = [
     {name = "Jeremy Gillespie", email = "metalgear386@googlemail.com"},
 ]
@@ -45,6 +45,9 @@ dev = [
     "pre-commit>=3.0.0",
 ]
 
+[project.scripts]
+kode-kronical-daemon = "kode_kronical.daemon:main"
+
 [project.urls]
 Homepage = "https://github.com/jeremycharlesgillespie/kode-kronical"
 Documentation = "https://kode-kronical.readthedocs.io/"
@@ -71,7 +74,7 @@ profile = "black"
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "0.2.7"
+python_version = "0.3.1"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

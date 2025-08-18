@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from kode_kronical import KodeKronical
 
@@ -15,7 +15,7 @@ def test_ora_errors():
     """Test different Oracle error explanations."""
     
     # Initialize KodeKronical - enables enhanced exception handling
-    perf = KodeKronical()
+    kode = KodeKronical()
     
     oracle_errors = [
         "ORA-00942: table or view does not exist",

@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from kode_kronical.core import KodeKronical
 
@@ -75,7 +75,7 @@ def main():
     print("=" * 60)
     
     # Initialize KodeKronical - this should automatically enable enhanced exceptions
-    perf = KodeKronical()
+    kode = KodeKronical()
     
     print("KodeKronical initialized. Enhanced exception handling should be active.")
     print("Now triggering an unhandled exception to demonstrate the feature...\n")

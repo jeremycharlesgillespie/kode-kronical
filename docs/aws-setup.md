@@ -1,4 +1,6 @@
-# AWS DynamoDB Setup for KodeKronical
+# AWS DynamoDB Setup for Kode Kronical
+
+This guide covers advanced AWS setup for Kode Kronical. For basic daemon setup, see the [Daemon Guide](daemon-guide.md) first.
 
 ## Installation with AWS Support
 
@@ -115,10 +117,10 @@ You can also configure KodeKronical programmatically:
 from kode_kronical import KodeKronical
 
 # Default configuration (loads .kode-kronical.yaml automatically)
-perf = KodeKronical()
+kode = KodeKronical()
 
 # Override with custom AWS settings
-perf = KodeKronical({
+kode = KodeKronical({
     "aws": {
         "region": "us-east-1",
         "table_name": "my-custom-table"

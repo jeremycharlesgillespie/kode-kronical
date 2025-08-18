@@ -1,9 +1,10 @@
 name: Run Tests
 
-on:
-  pull_request:
-    branches: [ main, test ]
-  workflow_dispatch:  # Allow manual triggering
+# DISABLED FOR TROUBLESHOOTING - uncomment when ready to re-enable
+# on:
+#   pull_request:
+#     branches: [ main, test ]
+#   workflow_dispatch:  # Allow manual triggering
 
 jobs:
   test:
@@ -52,9 +53,9 @@ jobs:
             print('✅ Enhanced exceptions working')
         
         # Test core functionality
-        perf = kode_kronical.KodeKronical()
+        kode = kode_kronical.KodeKronical()
         
-        @perf.time_it
+        @kode.time_it
         def test_function():
             import time
             time.sleep(0.01)

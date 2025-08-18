@@ -7,7 +7,7 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 print("🔒 Testing kode-kronical with restricted permissions...")
 print("=" * 60)
@@ -18,21 +18,21 @@ try:
     from kode_kronical import KodeKronical
     
     # Try to initialize with a directory that doesn't exist and can't be created
-    perf = KodeKronical({
+    kode = KodeKronical({
         'local': {
             'enabled': True,
             'data_dir': '/root/restricted/perf_data'  # This should fail
         }
     })
     
-    @perf.time_it
-    def test_function():
+    @kode.time_it
+    def sample_function():
         return sum(range(1000))
     
-    result = test_function()
+    result = sample_function()
     print(f"✅ KodeKronical continues to work even with storage issues")
     print(f"   Function result: {result}")
-    print(f"   Timing results: {len(perf.get_results())} records")
+    print(f"   Timing results: {len(kode.get_results())} records")
     
 except Exception as e:
     print(f"❌ Failed: {e}")
@@ -40,9 +40,9 @@ except Exception as e:
 print("\n2️⃣  Testing minimal functionality...")
 try:
     # Just basic timing without any storage
-    simple_perf = KodeKronical()
+    simple_kode = KodeKronical()
     
-    @simple_perf.time_it
+    @simple_kode.time_it
     def simple_function(n):
         total = 0
         for i in range(n):
@@ -50,7 +50,7 @@ try:
         return total
     
     result = simple_function(10000)  # Larger number to ensure timing
-    results = simple_perf.get_results()
+    results = simple_kode.get_results()
     
     print(f"✅ Basic timing works: {len(results)} records")
     if results:

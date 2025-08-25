@@ -39,7 +39,11 @@ kode-kronical-daemon restart
 ### Auto-Start Service (Optional)
 ```bash
 # Install for automatic startup on boot
-kode-kronical-daemon install
+kode-kronical-daemon install              # User service (starts at login)
+sudo kode-kronical-daemon install --system # System service (starts at boot)
+
+# The install command automatically enables boot/login startup.
+# On Linux, this uses systemctl enable to configure systemd.
 ```
 
 ## What the Daemon Does
@@ -94,9 +98,16 @@ pip install kode-kronical
 kode-kronical-daemon config  
 kode-kronical-daemon start
 
-# Install as service
-kode-kronical-daemon install              # User service
-sudo kode-kronical-daemon install --system  # System service
+# Install as service (automatically starts at boot)
+kode-kronical-daemon install              # User service (starts at user login)
+sudo kode-kronical-daemon install --system  # System service (starts at boot)
+
+# Manual service management (if needed)
+sudo systemctl enable kode-kronical-daemon   # Enable automatic startup at boot
+sudo systemctl disable kode-kronical-daemon  # Disable automatic startup
+sudo systemctl start kode-kronical-daemon    # Start service now
+sudo systemctl stop kode-kronical-daemon     # Stop service
+sudo systemctl status kode-kronical-daemon   # Check service status
 ```
 
 ## Configuration
@@ -302,9 +313,15 @@ daemon:
 kode-kronical-daemon stop
 
 # Remove service (if installed)
-# Linux
+# Linux - User service
 systemctl --user disable kode-kronical-daemon
+systemctl --user stop kode-kronical-daemon
 rm ~/.config/systemd/user/kode-kronical-daemon.service
+
+# Linux - System service (requires sudo)
+sudo systemctl disable kode-kronical-daemon
+sudo systemctl stop kode-kronical-daemon
+sudo rm /etc/systemd/system/kode-kronical-daemon.service
 
 # macOS  
 launchctl unload ~/Library/LaunchAgents/com.kodekronical.daemon.plist

@@ -2,11 +2,11 @@
 # Copy this to /etc/kode-kronical/daemon.yaml and modify as needed
 
 daemon:
-  # PID file location (requires appropriate permissions)
-  pid_file: /var/run/kode-kronical-daemon.pid
+  # PID file location (uses user directory)
+  pid_file: ~/.local/share/kode-kronical/daemon.pid
   
-  # Log file location
-  log_file: /var/log/kode-kronical-daemon.log
+  # Log file location (uses user directory)
+  log_file: ~/.local/share/kode-kronical/daemon.log
   
   # Data directory for storing metrics (always uses user directory)
   data_dir: ~/.local/share/kode-kronical

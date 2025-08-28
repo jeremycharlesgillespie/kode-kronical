@@ -23,8 +23,8 @@ def get_current_version():
     return version_match.group(1)
 
 
-def increment_version(version_str, increment=0.01):
-    """Increment version by specified amount"""
+def increment_version(version_str, bump_type='patch'):
+    """Increment version based on bump type: major, minor, or patch"""
     # Parse version (assume X.Y.Z format)
     parts = version_str.split('.')
     
@@ -33,17 +33,22 @@ def increment_version(version_str, increment=0.01):
     
     major, minor, patch = map(int, parts)
     
-    # Convert to float for increment calculation
-    current_version_float = major + minor * 0.1 + patch * 0.01
-    new_version_float = current_version_float + increment
+    if bump_type == 'major':
+        # X.0.0 - increment major, reset minor and patch
+        major += 1
+        minor = 0
+        patch = 0
+    elif bump_type == 'minor':
+        # 0.X.0 - increment minor, reset patch
+        minor += 1
+        patch = 0
+    elif bump_type == 'patch':
+        # 0.0.X - increment patch only
+        patch += 1
+    else:
+        raise ValueError(f"Invalid bump type: {bump_type}. Use 'major', 'minor', or 'patch'")
     
-    # Extract new major, minor, patch
-    new_major = int(new_version_float)
-    remaining = new_version_float - new_major
-    new_minor = int(remaining * 10)
-    new_patch = int(round((remaining * 10 - new_minor) * 10))
-    
-    return f"{new_major}.{new_minor}.{new_patch}"
+    return f"{major}.{minor}.{patch}"
 
 
 def update_version_in_files(new_version):
@@ -76,11 +81,46 @@ def update_version_in_files(new_version):
     return files_updated
 
 
-def main():
+def get_version_bump_type(current_version):
+    """Interactively ask user for version bump type"""
+    # Parse current version
+    parts = current_version.split('.')
+    if len(parts) != 3:
+        raise ValueError(f"Invalid version format: {current_version}")
+    
+    major, minor, patch = map(int, parts)
+    
+    print(f"\n📊 Current version: {current_version}")
+    print("\nSelect version bump type:")
+    print(f"  1. Major ({major}.{minor}.{patch} → {major + 1}.0.0)")
+    print(f"  2. Minor ({major}.{minor}.{patch} → {major}.{minor + 1}.0)")
+    print(f"  3. Patch ({major}.{minor}.{patch} → {major}.{minor}.{patch + 1}) [default]")
+    
+    choice = input("\nEnter choice (1-3, or press Enter for patch): ").strip()
+    
+    if choice == '1':
+        return 'major'
+    elif choice == '2':
+        return 'minor'
+    elif choice in ['3', '']:
+        return 'patch'
+    else:
+        print("Invalid choice, defaulting to patch")
+        return 'patch'
+
+
+def main(bump_type=None, interactive=True):
     """Main function for standalone usage"""
     try:
         current_version = get_current_version()
-        new_version = increment_version(current_version)
+        
+        # Get bump type interactively if not provided
+        if bump_type is None and interactive:
+            bump_type = get_version_bump_type(current_version)
+        elif bump_type is None:
+            bump_type = 'patch'  # default
+        
+        new_version = increment_version(current_version, bump_type)
         files_updated = update_version_in_files(new_version)
         
         print(f"✅ Version updated: {current_version} → {new_version}")

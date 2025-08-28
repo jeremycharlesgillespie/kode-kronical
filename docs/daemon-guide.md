@@ -5,7 +5,6 @@ The Kode Kronical daemon is a background service that continuously monitors syst
 ## Quick Start (2 Minutes)
 
 ### Installation
-The daemon is automatically included when you install kode-kronical:
 ```bash
 pip install kode-kronical
 ```
@@ -24,6 +23,15 @@ kode-kronical-daemon status
 
 That's it! The daemon is now collecting system metrics locally.
 
+### Install as System Service (Linux)
+For production use, install as a systemd service that starts at boot:
+```bash
+# Install and enable systemd service
+sudo install-kode-kronical-service
+
+# The service is now running and will start automatically at boot!
+```
+
 ### Enable AWS Upload (Optional)
 ```bash
 # Setup AWS credentials
@@ -34,16 +42,8 @@ sed -i '' 's/enable_dynamodb_upload: false/enable_dynamodb_upload: true/' ~/.con
 
 # Restart daemon
 kode-kronical-daemon restart
-```
-
-### Auto-Start Service (Optional)
-```bash
-# Install for automatic startup on boot
-kode-kronical-daemon install              # User service (starts at login)
-sudo kode-kronical-daemon install --system # System service (starts at boot)
-
-# The install command automatically enables boot/login startup.
-# On Linux, this uses systemctl enable to configure systemd.
+# OR if using systemd service:
+sudo systemctl restart kode-kronical-daemon
 ```
 
 ## What the Daemon Does
@@ -63,8 +63,8 @@ The daemon provides:
 - **Logs**: `~/.local/share/kode-kronical/daemon.log`
 
 ### System Installation
-- **Linux**: `/etc/kode-kronical/daemon.yaml`, `/var/lib/kode-kronical/`
-- **macOS**: `/etc/kode-kronical/daemon.yaml`, `/var/lib/kode-kronical/`
+- **Linux**: `/etc/kode-kronical/daemon.yaml`, `~/.local/share/kode-kronical/`
+- **macOS**: `/etc/kode-kronical/daemon.yaml`, `~/.local/share/kode-kronical/`
 - **Windows**: `C:\ProgramData\kode-kronical\`
 
 ## Platform-Specific Installation
@@ -98,16 +98,16 @@ pip install kode-kronical
 kode-kronical-daemon config  
 kode-kronical-daemon start
 
-# Install as service (automatically starts at boot)
-kode-kronical-daemon install              # User service (starts at user login)
-sudo kode-kronical-daemon install --system  # System service (starts at boot)
+# Install as systemd service (recommended for production)
+sudo install-kode-kronical-service
 
-# Manual service management (if needed)
-sudo systemctl enable kode-kronical-daemon   # Enable automatic startup at boot
-sudo systemctl disable kode-kronical-daemon  # Disable automatic startup
-sudo systemctl start kode-kronical-daemon    # Start service now
-sudo systemctl stop kode-kronical-daemon     # Stop service
+# Service management commands
 sudo systemctl status kode-kronical-daemon   # Check service status
+sudo systemctl stop kode-kronical-daemon     # Stop service
+sudo systemctl start kode-kronical-daemon    # Start service
+sudo systemctl restart kode-kronical-daemon  # Restart service
+sudo systemctl disable kode-kronical-daemon  # Disable boot startup
+sudo journalctl -u kode-kronical-daemon -f   # View live logs
 ```
 
 ## Configuration
@@ -278,14 +278,22 @@ kode-kronical-daemon status          # Show status and health
 kode-kronical-daemon config          # Generate/update config
 kode-kronical-daemon config --system # Generate system config (requires sudo)
 
-# Service installation
-kode-kronical-daemon install         # Install as user service  
-kode-kronical-daemon install --system # Install as system service (requires sudo)
+# Service installation (Linux)
+sudo install-kode-kronical-service           # Install systemd service
+sudo install-kode-kronical-service uninstall # Remove systemd service
+install-kode-kronical-service --help         # Show help
 
-# Advanced options
+# Advanced daemon options
 kode-kronical-daemon start --foreground # Run in foreground
 kode-kronical-daemon start --debug      # Enable debug logging
 kode-kronical-daemon -c /path/config.yaml start # Use custom config
+
+# Service management (after installing service)
+sudo systemctl status kode-kronical-daemon   # Check service status
+sudo systemctl stop kode-kronical-daemon     # Stop service
+sudo systemctl start kode-kronical-daemon    # Start service
+sudo systemctl restart kode-kronical-daemon  # Restart service
+sudo journalctl -u kode-kronical-daemon -f   # View live logs
 ```
 
 ## Performance Impact

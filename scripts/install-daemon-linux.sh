@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 INSTALL_USER="kode-kronical"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/kode-kronical"
-DATA_DIR="/var/lib/kode-kronical"
+DATA_DIR="$HOME/.local/share/kode-kronical"
 LOG_DIR="/var/log/kode-kronical"
 SERVICE_FILE="/etc/systemd/system/kode-kronical-daemon.service"
 
@@ -146,12 +146,21 @@ create_user() {
 create_directories() {
     log "Creating directories..."
     
-    mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR"
-    chown "$INSTALL_USER:$INSTALL_USER" "$DATA_DIR" "$LOG_DIR"
-    chmod 755 "$CONFIG_DIR"
-    chmod 750 "$DATA_DIR" "$LOG_DIR"
+    # Create directories with sudo to ensure proper permissions
+    sudo mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR"
     
-    log "Created directories: $CONFIG_DIR, $DATA_DIR, $LOG_DIR"
+    # Set ownership based on actual user running the daemon
+    if [[ "$DAEMON_USER" != "root" ]]; then
+        sudo chown -R "$DAEMON_USER:$DAEMON_USER" "$DATA_DIR" "$LOG_DIR"
+    else
+        # If installing as system service, use the install user
+        sudo chown -R "$INSTALL_USER:$INSTALL_USER" "$DATA_DIR" "$LOG_DIR"
+    fi
+    
+    sudo chmod 755 "$CONFIG_DIR"
+    sudo chmod 755 "$DATA_DIR" "$LOG_DIR"
+    
+    log "Created directories: $CONFIG_DIR, $DATA_DIR, $LOG_DIR with proper permissions"
 }
 
 # Install daemon executable
@@ -190,7 +199,8 @@ install_service() {
         exit 1
     fi
     
-    cp "$service_file" "$SERVICE_FILE"
+    # Copy service file and replace __USER__ placeholder with actual user
+    sed "s/__USER__/$DAEMON_USER/g" "$service_file" > "$SERVICE_FILE"
     chmod 644 "$SERVICE_FILE"
     
     systemctl daemon-reload
@@ -315,10 +325,10 @@ main() {
     install_system_deps
     install_requirements
     create_user
-    create_directories
+    create_directories  # Create directories early, before any daemon operations
+    install_config     # Install config before daemon so it knows where to write
     install_daemon
     install_service
-    install_config
     start_service
     verify_installation
     print_usage

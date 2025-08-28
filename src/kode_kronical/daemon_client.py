@@ -33,7 +33,7 @@ class DaemonClient:
         
         Args:
             data_dir: Directory where daemon stores data files.
-                     Defaults to /var/lib/kode-kronical or ~/.kode-kronical/data
+                     Defaults to ~/.local/share/kode-kronical
         """
         self.logger = logging.getLogger(__name__)
         
@@ -42,8 +42,7 @@ class DaemonClient:
             self.data_dirs = [Path(data_dir)]
         else:
             self.data_dirs = [
-                Path('/var/lib/kode-kronical'),
-                Path.home() / '.local' / 'share' / 'kode-kronical',  # New standard location
+                Path.home() / '.local' / 'share' / 'kode-kronical',  # Standard location
                 Path.home() / '.kode-kronical' / 'data',  # Legacy location
                 Path('./perf_data'),  # Fallback for development
             ]

@@ -88,7 +88,7 @@ All installation scripts perform the following operations:
 **Installation Paths:**
 - Executable: `/usr/local/bin/kode-kronical-daemon`
 - Configuration: `/etc/kode-kronical/daemon.yaml`
-- Data: `/var/lib/kode-kronical/`
+- Data: `~/.local/share/kode-kronical/`
 - Logs: `/var/log/kode-kronical/`
 - Service: `/etc/systemd/system/kode-kronical-daemon.service`
 
@@ -181,7 +181,7 @@ After installation, verify the daemon is working:
 **Linux:**
 ```bash
 sudo systemctl status kode-kronical-daemon
-ls -la /var/lib/kode-kronical/
+ls -la ~/.local/share/kode-kronical/
 ```
 
 **Windows:**

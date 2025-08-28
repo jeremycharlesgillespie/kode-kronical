@@ -194,7 +194,7 @@ export:
     
     # Update paths in config file for Windows
     $config = Get-Content $configFile -Raw
-    $config = $config -replace "/var/lib/kode-kronical", ($DataPath -replace "\\", "\\")
+    $config = $config -replace "~/.local/share/kode-kronical", ($DataPath -replace "\\", "\\")
     $config = $config -replace "/var/log/kode-kronical", ($LogPath -replace "\\", "\\")
     $config = $config -replace "/var/run/kode-kronical-daemon.pid", (Join-Path $DataPath "daemon.pid" -replace "\\", "\\")
     $config | Out-File -FilePath $configFile -Encoding UTF8 -NoNewline

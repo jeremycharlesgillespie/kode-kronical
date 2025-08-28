@@ -40,7 +40,7 @@ class KodeKronicalDaemon:
         self.config = self._load_config(config_path)
         self.pid_file = Path(self.config.get('daemon', {}).get('pid_file', '/var/run/kode-kronical-daemon.pid'))
         self.log_file = Path(self.config.get('daemon', {}).get('log_file', '/var/log/kode-kronical-daemon.log'))
-        self.data_dir = Path(self.config.get('daemon', {}).get('data_dir', '/var/lib/kode-kronical'))
+        self.data_dir = Path(self.config.get('daemon', {}).get('data_dir', str(Path.home() / '.local' / 'share' / 'kode-kronical')))
         
         # Ensure directories exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -71,7 +71,7 @@ class KodeKronicalDaemon:
             'daemon': {
                 'pid_file': '/var/run/kode-kronical-daemon.pid',
                 'log_file': '/var/log/kode-kronical-daemon.log',
-                'data_dir': '/var/lib/kode-kronical',
+                'data_dir': str(Path.home() / '.local' / 'share' / 'kode-kronical'),
                 'sample_interval': 1.0,
                 'max_samples': 3600,
                 'data_retention_hours': 24,

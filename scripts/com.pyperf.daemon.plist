@@ -33,7 +33,7 @@
     <string>/var/log/kode-kronical/daemon.error.log</string>
     
     <key>WorkingDirectory</key>
-    <string>/var/lib/kode-kronical</string>
+    <string>~/.local/share/kode-kronical</string>
     
     <key>EnvironmentVariables</key>
     <dict>

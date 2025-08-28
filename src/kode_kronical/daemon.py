@@ -52,37 +52,43 @@ class KodeKronicalDaemon:
         # Set up paths based on config
         daemon_config = self.config.get('daemon', {})
         
-        # Determine if we're running as root/system or user
-        self.is_system_daemon = os.geteuid() == 0 if hasattr(os, 'geteuid') else False
-        
-        # Set default paths based on daemon type
-        if self.is_system_daemon:
-            # System daemon paths
-            default_pid_file = '/var/run/kode-kronical-daemon.pid'
-            default_log_file = '/var/log/kode-kronical-daemon.log'
-            default_data_dir = '/var/lib/kode-kronical'
-        else:
-            # User daemon paths
-            home = Path.home()
-            default_pid_file = str(home / '.local/share/kode-kronical/daemon.pid')
-            default_log_file = str(home / '.local/share/kode-kronical/daemon.log')
-            default_data_dir = str(home / '.local/share/kode-kronical')
+        # Always use user directory to avoid permission issues
+        home = Path.home()
+        default_pid_file = str(home / '.local/share/kode-kronical/daemon.pid')
+        default_log_file = str(home / '.local/share/kode-kronical/daemon.log')
+        default_data_dir = str(home / '.local/share/kode-kronical')
         
         self.pid_file = Path(daemon_config.get('pid_file', default_pid_file))
         self.log_file = Path(daemon_config.get('log_file', default_log_file))
         self.data_dir = Path(daemon_config.get('data_dir', default_data_dir))
         
-        # Create directories if they don't exist
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.log_file.parent.mkdir(parents=True, exist_ok=True)
-        self.pid_file.parent.mkdir(parents=True, exist_ok=True)
+        # Create directories - should always work since we're using user directories
+        try:
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            self.log_file.parent.mkdir(parents=True, exist_ok=True)
+            self.pid_file.parent.mkdir(parents=True, exist_ok=True)
+            print(f"Using data directory: {self.data_dir}")
+        except Exception as e:
+            print(f"FATAL: Cannot create user directories: {e}")
+            print(f"Attempted paths: data={self.data_dir}, log={self.log_file.parent}, pid={self.pid_file.parent}")
+            raise
         
-        # Set up logging
-        logging.basicConfig(
-            filename=str(self.log_file),
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
+        # Set up logging with error handling
+        try:
+            logging.basicConfig(
+                filename=str(self.log_file),
+                level=logging.INFO,
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            print(f"Logging initialized to: {self.log_file}")
+        except Exception as e:
+            print(f"Error setting up logging to {self.log_file}: {e}")
+            # Fall back to console logging
+            logging.basicConfig(
+                level=logging.INFO,
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            print("Falling back to console logging")
         self.logger = logging.getLogger('kode-kronical-daemon')
         
         # Initialize system monitor
@@ -138,8 +144,12 @@ class KodeKronicalDaemon:
             }
         }
     
-    def start(self):
-        """Start the daemon."""
+    def start(self, foreground=False):
+        """Start the daemon.
+        
+        Args:
+            foreground: If True, run in foreground (don't fork)
+        """
         # Check if already running
         if self.is_running():
             print(f"Daemon already running with PID {self.get_pid()}")
@@ -147,8 +157,8 @@ class KodeKronicalDaemon:
         
         print("Starting kode-kronical-daemon...")
         
-        # Fork and daemonize
-        if os.name != 'nt':  # Unix/Linux/macOS
+        # Fork and daemonize only if not running in foreground
+        if not foreground and os.name != 'nt':  # Unix/Linux/macOS
             self._daemonize()
         
         # Write PID file
@@ -421,6 +431,9 @@ Config file locations (searched in order):
     parser.add_argument('--system', action='store_true',
                        help='Install as system service (requires root)')
     
+    parser.add_argument('--foreground', action='store_true',
+                       help='Run in foreground (do not fork)')
+    
     args = parser.parse_args()
     
     # Handle special commands
@@ -451,7 +464,7 @@ Config file locations (searched in order):
     
     # Execute command
     if args.command == 'start':
-        daemon.start()
+        daemon.start(foreground=args.foreground)
     elif args.command == 'stop':
         daemon.stop()
     elif args.command == 'restart':
@@ -477,7 +490,7 @@ def generate_config(args):
         # System config
         config_dir = Path('/etc/kode-kronical')
         config_file = config_dir / 'daemon.yaml'
-        data_dir = Path('/var/lib/kode-kronical')
+        data_dir = Path.home() / '.local' / 'share' / 'kode-kronical'
         log_file = Path('/var/log/kode-kronical-daemon.log')
         pid_file = Path('/var/run/kode-kronical-daemon.pid')
     
@@ -651,7 +664,7 @@ Description=KodeKronical System Monitoring Daemon
 After=network.target
 
 [Service]
-Type=forking
+Type=simple
 ExecStart={daemon_cmd} -c {config_file} start
 ExecStop={daemon_cmd} -c {config_file} stop
 ExecReload={daemon_cmd} -c {config_file} restart

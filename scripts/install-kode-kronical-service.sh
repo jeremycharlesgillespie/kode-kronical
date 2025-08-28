@@ -43,19 +43,20 @@ find_daemon() {
     # Try common locations
     DAEMON_PATH=""
     
-    # Check if it's in PATH
-    if command -v kode-kronical-daemon >/dev/null 2>&1; then
+    # Search common virtual environment locations first (preferred)
+    for venv_path in "/home/$SUDO_USER/.venv" "/home/$SUDO_USER/venv" "/opt/venv"; do
+        if [[ -f "$venv_path/bin/kode-kronical-daemon" ]]; then
+            # Use the venv's kode-kronical-daemon directly
+            DAEMON_PATH="$venv_path/bin/kode-kronical-daemon"
+            info "Found daemon in venv: $DAEMON_PATH"
+            break
+        fi
+    done
+    
+    # Check if it's in PATH as fallback
+    if [[ -z "$DAEMON_PATH" ]] && command -v kode-kronical-daemon >/dev/null 2>&1; then
         DAEMON_PATH=$(which kode-kronical-daemon)
         info "Found daemon in PATH: $DAEMON_PATH"
-    else
-        # Search common virtual environment locations
-        for venv_path in "/home/$SUDO_USER/.venv" "/home/$SUDO_USER/venv" "/opt/venv"; do
-            if [[ -f "$venv_path/bin/kode-kronical-daemon" ]]; then
-                DAEMON_PATH="$venv_path/bin/kode-kronical-daemon"
-                info "Found daemon in venv: $DAEMON_PATH"
-                break
-            fi
-        done
         
         # Search user's home directory
         if [[ -z "$DAEMON_PATH" && -n "$SUDO_USER" ]]; then
@@ -80,6 +81,26 @@ find_daemon() {
     fi
     
     log "Using daemon at: $DAEMON_PATH"
+}
+
+# Create necessary directories
+create_directories() {
+    log "Creating necessary directories..."
+    
+    # Create config directory
+    mkdir -p /etc/kode-kronical
+    chmod 755 /etc/kode-kronical
+    
+    # Always use user data directory to avoid permission issues
+    DATA_DIR="/home/$SUDO_USER/.local/share/kode-kronical"
+    mkdir -p "$DATA_DIR"
+    chown "$SUDO_USER:$SUDO_USER" "$DATA_DIR"
+    chmod 755 "$DATA_DIR"
+    info "Created user data directory: $DATA_DIR"
+    
+    # Create PID directory
+    mkdir -p /var/run
+    chmod 755 /var/run
 }
 
 # Stop existing daemon if running
@@ -114,10 +135,10 @@ Documentation=https://github.com/jeremycharlesgillespie/kode-kronical
 After=network.target
 
 [Service]
-Type=forking
-ExecStart=$DAEMON_PATH start
-ExecStop=$DAEMON_PATH stop
-ExecReload=$DAEMON_PATH restart
+Type=simple
+ExecStart=$DAEMON_PATH -c /etc/kode-kronical/daemon.yaml start --foreground
+ExecStop=$DAEMON_PATH -c /etc/kode-kronical/daemon.yaml stop
+ExecReload=$DAEMON_PATH -c /etc/kode-kronical/daemon.yaml restart
 PIDFile=/var/run/kode-kronical-daemon.pid
 Restart=on-failure
 RestartSec=10
@@ -220,6 +241,7 @@ main() {
     
     check_root
     find_daemon
+    create_directories  # Create directories early before any daemon operations
     stop_existing_daemon
     create_service_file
     install_service

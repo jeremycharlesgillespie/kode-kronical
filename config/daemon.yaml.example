@@ -8,10 +8,8 @@ daemon:
   # Log file location
   log_file: /var/log/kode-kronical-daemon.log
   
-  # Data directory for storing metrics
-  # For user installation: ~/.kode-kronical/data
-  # For system installation: /var/lib/kode-kronical
-  data_dir: ~/.kode-kronical/data
+  # Data directory for storing metrics (always uses user directory)
+  data_dir: ~/.local/share/kode-kronical
   
   # Sampling interval in seconds (lower = more detailed, higher CPU usage)
   sample_interval: 1.0

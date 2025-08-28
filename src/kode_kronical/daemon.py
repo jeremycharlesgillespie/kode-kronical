@@ -58,9 +58,15 @@ class KodeKronicalDaemon:
         default_log_file = str(home / '.local/share/kode-kronical/daemon.log')
         default_data_dir = str(home / '.local/share/kode-kronical')
         
-        self.pid_file = Path(daemon_config.get('pid_file', default_pid_file))
-        self.log_file = Path(daemon_config.get('log_file', default_log_file))
-        self.data_dir = Path(daemon_config.get('data_dir', default_data_dir))
+        # Get paths from config and expand ~ to user home
+        pid_path = daemon_config.get('pid_file', default_pid_file)
+        log_path = daemon_config.get('log_file', default_log_file)
+        data_path = daemon_config.get('data_dir', default_data_dir)
+        
+        # Expand ~ in paths
+        self.pid_file = Path(os.path.expanduser(pid_path))
+        self.log_file = Path(os.path.expanduser(log_path))
+        self.data_dir = Path(os.path.expanduser(data_path))
         
         # Create directories - should always work since we're using user directories
         try:
@@ -92,10 +98,18 @@ class KodeKronicalDaemon:
         self.logger = logging.getLogger('kode-kronical-daemon')
         
         # Initialize system monitor
-        self.monitor = SystemMonitor(
-            sample_interval=daemon_config.get('sample_interval', 1.0),
-            max_samples=daemon_config.get('max_samples', 3600)
-        )
+        try:
+            print("Initializing SystemMonitor...")
+            self.monitor = SystemMonitor(
+                sample_interval=daemon_config.get('sample_interval', 1.0),
+                max_samples=daemon_config.get('max_samples', 3600)
+            )
+            print("SystemMonitor initialized successfully")
+        except Exception as e:
+            print(f"FATAL: Failed to initialize SystemMonitor: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # Initialize DynamoDB service if enabled
         self.dynamodb_service = None
@@ -150,85 +164,121 @@ class KodeKronicalDaemon:
         Args:
             foreground: If True, run in foreground (don't fork)
         """
-        # Check if already running
-        if self.is_running():
-            print(f"Daemon already running with PID {self.get_pid()}")
-            return
-        
-        print("Starting kode-kronical-daemon...")
-        
-        # Fork and daemonize only if not running in foreground
-        if not foreground and os.name != 'nt':  # Unix/Linux/macOS
-            self._daemonize()
-        
-        # Write PID file
-        with open(self.pid_file, 'w') as f:
-            f.write(str(os.getpid()))
-        
-        # Set up signal handlers
-        signal.signal(signal.SIGTERM, self._signal_handler)
-        signal.signal(signal.SIGINT, self._signal_handler)
-        
-        # Start monitoring
-        self.running = True
-        self.monitor.start_monitoring()
-        
-        self.logger.info(f"Daemon started with PID {os.getpid()}")
-        
-        # Register this system in the registry
-        if self.registry_service:
+        try:
+            # Check if already running
+            if self.is_running():
+                print(f"Daemon already running with PID {self.get_pid()}")
+                return
+            
+            print(f"Starting kode-kronical-daemon... (foreground={foreground})")
+            
+            # Fork and daemonize only if not running in foreground
+            if not foreground and os.name != 'nt':  # Unix/Linux/macOS
+                print("Daemonizing (forking)...")
+                self._daemonize()
+            else:
+                print("Running in foreground mode (no forking)")
+            
+            # Write PID file
+            print(f"Writing PID {os.getpid()} to {self.pid_file}")
+            with open(self.pid_file, 'w') as f:
+                f.write(str(os.getpid()))
+            
+            # Set up signal handlers
+            print("Setting up signal handlers...")
+            signal.signal(signal.SIGTERM, self._signal_handler)
+            signal.signal(signal.SIGINT, self._signal_handler)
+            
+            # Start monitoring
+            print("Setting running = True and starting monitor...")
+            self.running = True
+            
             try:
-                import platform
-                hostname = get_normalized_hostname()
-                self.registry_service.register_system(
-                    hostname=hostname,
-                    platform_info=platform.system()
-                )
-                self.logger.info(f"Registered system {hostname} in registry")
+                self.monitor.start_monitoring()
+                print("Monitor started successfully")
             except Exception as e:
-                self.logger.error(f"Failed to register system: {e}")
-        
-        # Main loop
-        metrics_buffer = []
-        last_save = time.time()
-        save_interval = 60  # Save every minute
-        
-        while self.running:
-            try:
-                # Get current metrics
-                metrics = self.monitor.get_current_metrics()
-                if metrics:
-                    metrics_buffer.append(metrics)
-                
-                # Save periodically
-                if time.time() - last_save >= save_interval:
-                    if metrics_buffer:
-                        self._save_metrics(metrics_buffer)
-                        metrics_buffer = []
-                    last_save = time.time()
+                print(f"FATAL: Failed to start monitor: {e}")
+                import traceback
+                traceback.print_exc()
+                return
+            
+            self.logger.info(f"Daemon started with PID {os.getpid()}")
+            print(f"Daemon started with PID {os.getpid()}")
+            
+            # Register this system in the registry
+            if self.registry_service:
+                try:
+                    import platform
+                    hostname = get_normalized_hostname()
+                    self.registry_service.register_system(
+                        hostname=hostname,
+                        platform_info=platform.system()
+                    )
+                    self.logger.info(f"Registered system {hostname} in registry")
+                except Exception as e:
+                    self.logger.error(f"Failed to register system: {e}")
+            
+            # Main loop
+            print("Starting main monitoring loop...")
+            metrics_buffer = []
+            last_save = time.time()
+            save_interval = 60  # Save every minute
+            
+            while self.running:
+                try:
+                    # Get current metrics
+                    metrics = self.monitor.get_current_metrics()
+                    if metrics:
+                        metrics_buffer.append(metrics)
                     
-                    # Cleanup old files
-                    self._cleanup_old_files()
-                
-                time.sleep(1)
-                
-            except Exception as e:
-                self.logger.error(f"Error in daemon main loop: {e}")
-                time.sleep(5)
-        
-        # Clean up
-        self.monitor.stop_monitoring()
-        
-        # Mark system as offline in registry
-        if self.registry_service:
+                    # Save periodically
+                    if time.time() - last_save >= save_interval:
+                        if metrics_buffer:
+                            self._save_metrics(metrics_buffer)
+                            metrics_buffer = []
+                        last_save = time.time()
+                        
+                        # Cleanup old files
+                        self._cleanup_old_files()
+                    
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    print(f"ERROR in main loop: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    self.logger.error(f"Error in daemon main loop: {e}")
+                    time.sleep(5)
+            
+            # Clean up
+            print("Main loop exited, cleaning up...")
+            print(f"Running state when exiting: {self.running}")
+            self.monitor.stop_monitoring()
+            
+            # Mark system as offline in registry
+            if self.registry_service:
+                try:
+                    hostname = get_normalized_hostname()
+                    self.registry_service.mark_system_offline(hostname)
+                except Exception as e:
+                    self.logger.error(f"Failed to mark system offline: {e}")
+            
+            if os.path.exists(self.pid_file):
+                os.unlink(self.pid_file)
+            self.logger.info("Daemon stopped")
+            print("Daemon cleanup completed")
+            
+        except Exception as e:
+            print(f"FATAL EXCEPTION in start(): {e}")
+            import traceback
+            traceback.print_exc()
+            # Make sure we clean up the PID file even on fatal error
             try:
-                hostname = get_normalized_hostname()
-                self.registry_service.mark_system_offline(hostname)
-            except Exception as e:
-                self.logger.error(f"Failed to mark system offline: {e}")
-        
-        os.unlink(self.pid_file)
-        self.logger.info("Daemon stopped")
+                if hasattr(self, 'pid_file') and os.path.exists(self.pid_file):
+                    os.unlink(self.pid_file)
+            except:
+                pass
+            raise
     
     def stop(self):
         """Stop the daemon."""
@@ -336,6 +386,7 @@ class KodeKronicalDaemon:
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals."""
+        print(f"SIGNAL RECEIVED: {signum} - shutting down...")
         self.logger.info(f"Received signal {signum}, shutting down...")
         self.running = False
     
@@ -435,6 +486,7 @@ Config file locations (searched in order):
                        help='Run in foreground (do not fork)')
     
     args = parser.parse_args()
+    print(f"DEBUG: Parsed args: command={args.command}, foreground={args.foreground}")
     
     # Handle special commands
     if args.command == 'config':
@@ -492,7 +544,7 @@ def generate_config(args):
         config_file = config_dir / 'daemon.yaml'
         data_dir = Path.home() / '.local' / 'share' / 'kode-kronical'
         log_file = Path('/var/log/kode-kronical-daemon.log')
-        pid_file = Path('/var/run/kode-kronical-daemon.pid')
+        pid_file = Path.home() / '.local' / 'share' / 'kode-kronical' / 'daemon.pid'
     
     config_template = f"""# KodeKronical Daemon Configuration
 daemon:

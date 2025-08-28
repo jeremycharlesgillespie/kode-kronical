@@ -13,14 +13,25 @@ from pathlib import Path
 
 
 class ServiceInstaller:
-    def __init__(self):
+    def __init__(self, user_service=True):
         self.service_name = "kode-kronical-daemon"
-        self.service_file = f"/etc/systemd/system/{self.service_name}.service"
+        self.user_service = user_service
         self.daemon_path = None
         self.config_path = None
         self.pid_file = None
-        self.user = os.environ.get('SUDO_USER', 'root')
+        self.user = os.environ.get('SUDO_USER') if not user_service else os.environ.get('USER')
         self.create_default_config = False
+        
+        if user_service:
+            # User service configuration
+            self.service_file = f"{os.path.expanduser('~')}/.config/systemd/user/{self.service_name}.service"
+            self.config_dir = f"{os.path.expanduser('~')}/.config/kode-kronical"
+            self.data_dir = f"{os.path.expanduser('~')}/.local/share/kode-kronical"
+        else:
+            # System service configuration
+            self.service_file = f"/etc/systemd/system/{self.service_name}.service"
+            self.config_dir = "/etc/kode-kronical"
+            self.data_dir = f"/home/{self.user}/.local/share/kode-kronical"
         
     def log(self, message, color='32'):
         """Print colored log message."""
@@ -40,9 +51,10 @@ class ServiceInstaller:
         print(f"\033[34m[INFO] {message}\033[0m")
     
     def check_root(self):
-        """Check if running as root."""
-        if os.geteuid() != 0:
-            self.error("This script must be run as root (use sudo)")
+        """Check if running as root (only for system services)."""
+        if not self.user_service and os.geteuid() != 0:
+            self.error("System service installation must be run as root (use sudo)")
+            self.error("For user service installation (default), run without --system flag")
             sys.exit(1)
     
     def check_platform(self):
@@ -56,17 +68,24 @@ class ServiceInstaller:
         """Find kode-kronical-daemon executable."""
         self.log("Locating kode-kronical-daemon executable...")
         
-        # Search common virtual environment locations first
-        venv_paths = [
-            f"/home/{self.user}/.venv",
-            f"/home/{self.user}/venv",
-            "/opt/venv"
-        ]
+        if self.user_service:
+            # For user service, check user's home directory first
+            home_dir = os.path.expanduser('~')
+            venv_paths = [
+                f"{home_dir}/.venv",
+                f"{home_dir}/venv"
+            ]
+        else:
+            # For system service, check user and system locations
+            venv_paths = [
+                f"/home/{self.user}/.venv",
+                f"/home/{self.user}/venv",
+                "/opt/venv"
+            ]
         
         for venv_dir in venv_paths:
             daemon_path = os.path.join(venv_dir, "bin", "kode-kronical-daemon")
             if os.path.isfile(daemon_path) and os.access(daemon_path, os.X_OK):
-                # Store the venv daemon path directly - will be run by venv's Python
                 self.daemon_path = daemon_path
                 self.info(f"Found daemon in venv: {self.daemon_path}")
                 return
@@ -78,20 +97,6 @@ class ServiceInstaller:
             self.info(f"Found daemon in PATH: {self.daemon_path}")
             return
         
-        # Search user's home directory
-        try:
-            result = subprocess.run([
-                'find', f'/home/{self.user}', '-name', 'kode-kronical-daemon', 
-                '-type', 'f', '-executable'
-            ], capture_output=True, text=True, stderr=subprocess.DEVNULL)
-            
-            if result.stdout.strip():
-                self.daemon_path = result.stdout.strip().split('\n')[0]
-                self.info(f"Found daemon via search: {self.daemon_path}")
-                return
-        except:
-            pass
-        
         self.error("Could not find kode-kronical-daemon executable")
         self.error("Please ensure kode-kronical is installed and accessible")
         sys.exit(1)
@@ -100,14 +105,26 @@ class ServiceInstaller:
         """Find daemon configuration file."""
         self.log("Locating daemon configuration file...")
         
-        # Common config locations
-        config_paths = [
-            f"/home/{self.user}/.config/kode-kronical/daemon.yaml",
-            f"/home/{self.user}/.kode-kronical.yaml",
-            "/etc/kode-kronical/daemon.yaml",
-            "./daemon.yaml",
-            "./config/daemon.yaml"
-        ]
+        if self.user_service:
+            # User service config locations
+            home_dir = os.path.expanduser('~')
+            config_paths = [
+                f"{home_dir}/.config/kode-kronical/daemon.yaml",
+                f"{home_dir}/.kode-kronical.yaml",
+                "./daemon.yaml",
+                "./config/daemon.yaml"
+            ]
+            default_config_path = f"{home_dir}/.config/kode-kronical/daemon.yaml"
+        else:
+            # System service config locations
+            config_paths = [
+                f"/home/{self.user}/.config/kode-kronical/daemon.yaml",
+                f"/home/{self.user}/.kode-kronical.yaml",
+                "/etc/kode-kronical/daemon.yaml",
+                "./daemon.yaml",
+                "./config/daemon.yaml"
+            ]
+            default_config_path = "/etc/kode-kronical/daemon.yaml"
         
         for path in config_paths:
             if os.path.isfile(path):
@@ -116,8 +133,9 @@ class ServiceInstaller:
                 return
         
         # If no config file found, we'll create a default one
-        self.warning("No config file found, will create default at /etc/kode-kronical/daemon.yaml")
-        self.config_path = "/etc/kode-kronical/daemon.yaml"
+        service_type = "user service" if self.user_service else "system service"
+        self.warning(f"No config file found, will create default for {service_type}")
+        self.config_path = default_config_path
         self.create_default_config = True
     
     def read_config_values(self):
@@ -186,7 +204,7 @@ class ServiceInstaller:
   data_dir: {data_dir}
   enable_network_monitoring: true
   data_retention_hours: 24
-  pid_file: /var/run/kode-kronical-daemon.pid
+  pid_file: ~/.local/share/kode-kronical/daemon.pid
 """
                 with open(self.config_path, 'w') as f:
                     f.write(default_config)
@@ -219,26 +237,45 @@ class ServiceInstaller:
     
     def create_service_file(self):
         """Create systemd service file."""
-        self.log("Creating systemd service file...")
+        service_type = "user service" if self.user_service else "system service"
+        self.log(f"Creating systemd {service_type} file...")
         
-        # Always use config file - we ensure one exists
-        # Use Type=simple - systemd will track the final process after double-fork
-        exec_start = f"{self.daemon_path} -c {self.config_path} start"
+        # Ensure service file directory exists
+        service_dir = os.path.dirname(self.service_file)
+        if not os.path.exists(service_dir):
+            os.makedirs(service_dir, exist_ok=True)
+            self.info(f"Created service directory: {service_dir}")
+        
+        # Use --foreground flag for both user and system services
+        exec_start = f"{self.daemon_path} -c {self.config_path} start --foreground"
         exec_stop = f"{self.daemon_path} -c {self.config_path} stop"
         exec_reload = f"{self.daemon_path} -c {self.config_path} restart"
         
-        # Ensure PID file directory exists
-        pid_dir = os.path.dirname(self.pid_file)
-        if not os.path.exists(pid_dir):
-            os.makedirs(pid_dir, exist_ok=True)
-            try:
-                uid = int(subprocess.run(['id', '-u', self.user], capture_output=True, text=True).stdout.strip())
-                gid = int(subprocess.run(['id', '-g', self.user], capture_output=True, text=True).stdout.strip())
-                os.chown(pid_dir, uid, gid)
-            except:
-                self.warning(f"Could not set ownership for {pid_dir}")
-        
-        service_content = f"""[Unit]
+        if self.user_service:
+            # User service configuration
+            home_dir = os.path.expanduser('~')
+            service_content = f"""[Unit]
+Description=kode-kronical System Monitoring Daemon (User Service)
+Documentation=https://github.com/jeremycharlesgillespie/kode-kronical
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart={exec_start}
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=HOME={home_dir}
+Environment=USER={os.environ.get('USER', 'user')}
+WorkingDirectory={home_dir}
+
+[Install]
+WantedBy=default.target
+"""
+        else:
+            # System service configuration
+            service_content = f"""[Unit]
 Description=kode-kronical System Monitoring Daemon
 Documentation=https://github.com/jeremycharlesgillespie/kode-kronical
 After=network.target
@@ -250,8 +287,11 @@ ExecStop={exec_stop}
 ExecReload={exec_reload}
 Restart=on-failure
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 User={self.user}
 Environment=HOME=/home/{self.user}
+Environment=USER={self.user}
 WorkingDirectory=/home/{self.user}
 
 [Install]
@@ -262,56 +302,77 @@ WantedBy=multi-user.target
             f.write(service_content)
         
         os.chmod(self.service_file, 0o644)
-        self.log(f"Created service file: {self.service_file}")
+        self.log(f"Created {service_type} file: {self.service_file}")
     
     def install_service(self):
         """Install and start the service."""
-        self.log("Installing and starting systemd service...")
+        service_type = "user service" if self.user_service else "system service"
+        self.log(f"Installing and starting systemd {service_type}...")
+        
+        if self.user_service:
+            # User service commands
+            systemctl_cmd = ['systemctl', '--user']
+            
+            # Enable lingering so service can start without user login
+            try:
+                subprocess.run(['sudo', 'loginctl', 'enable-linger', os.environ.get('USER')], 
+                              check=False, capture_output=True)
+                self.info("Enabled user lingering (service can start without login)")
+            except:
+                self.warning("Could not enable lingering (service requires login to start)")
+        else:
+            # System service commands
+            systemctl_cmd = ['systemctl']
         
         # Reload systemd
-        subprocess.run(['systemctl', 'daemon-reload'], check=True)
-        self.info("Reloaded systemd configuration")
+        subprocess.run(systemctl_cmd + ['daemon-reload'], check=True)
+        self.info(f"Reloaded systemd configuration")
         
-        # Enable service (start at boot)
-        subprocess.run(['systemctl', 'enable', self.service_name], check=True)
-        self.info("Enabled service for automatic startup")
+        # Enable service (start at boot/login)
+        subprocess.run(systemctl_cmd + ['enable', self.service_name], check=True)
+        startup_msg = "automatic startup at login" if self.user_service else "automatic startup at boot"
+        self.info(f"Enabled service for {startup_msg}")
         
         # Start service now
-        subprocess.run(['systemctl', 'start', self.service_name], check=True)
-        self.info("Started kode-kronical-daemon service")
+        subprocess.run(systemctl_cmd + ['start', self.service_name], check=True)
+        self.info(f"Started kode-kronical-daemon {service_type}")
         
         # Wait and check status
         import time
         time.sleep(2)
         
-        result = subprocess.run(['systemctl', 'is-active', '--quiet', self.service_name])
+        result = subprocess.run(systemctl_cmd + ['is-active', '--quiet', self.service_name])
         if result.returncode == 0:
-            self.log("✓ Service started successfully")
+            self.log(f"✓ {service_type.capitalize()} started successfully")
         else:
-            self.error("✗ Service failed to start")
-            subprocess.run(['systemctl', 'status', self.service_name])
+            self.error(f"✗ {service_type.capitalize()} failed to start")
+            subprocess.run(systemctl_cmd + ['status', self.service_name])
             sys.exit(1)
     
     def verify_service(self):
         """Verify service installation."""
-        self.log("Verifying service installation...")
+        service_type = "user service" if self.user_service else "system service"
+        self.log(f"Verifying {service_type} installation...")
+        
+        systemctl_cmd = ['systemctl', '--user'] if self.user_service else ['systemctl']
         
         # Check if enabled
-        result = subprocess.run(['systemctl', 'is-enabled', '--quiet', self.service_name])
+        result = subprocess.run(systemctl_cmd + ['is-enabled', '--quiet', self.service_name])
+        startup_msg = "login startup" if self.user_service else "boot startup"
         if result.returncode == 0:
-            self.info("✓ Service enabled for boot startup")
+            self.info(f"✓ Service enabled for {startup_msg}")
         else:
-            self.warning("✗ Service not enabled")
+            self.warning(f"✗ Service not enabled for {startup_msg}")
         
         # Check if active
-        result = subprocess.run(['systemctl', 'is-active', '--quiet', self.service_name])
+        result = subprocess.run(systemctl_cmd + ['is-active', '--quiet', self.service_name])
         if result.returncode == 0:
-            self.info("✓ Service is running")
+            self.info(f"✓ {service_type.capitalize()} is running")
             print()
             self.info("Service Status:")
-            subprocess.run(['systemctl', 'status', self.service_name, '--no-pager', '-l'])
+            subprocess.run(systemctl_cmd + ['status', self.service_name, '--no-pager', '-l'])
         else:
-            self.warning("✗ Service is not running")
+            self.warning(f"✗ {service_type.capitalize()} is not running")
     
     def print_usage(self):
         """Print usage information."""
@@ -353,53 +414,67 @@ WantedBy=multi-user.target
     
     def uninstall(self):
         """Uninstall the service."""
-        self.log("Uninstalling kode-kronical-daemon service...")
+        service_type = "user service" if self.user_service else "system service"
+        self.log(f"Uninstalling kode-kronical-daemon {service_type}...")
         
-        subprocess.run(['systemctl', 'stop', self.service_name], check=False)
-        subprocess.run(['systemctl', 'disable', self.service_name], check=False)
+        systemctl_cmd = ['systemctl', '--user'] if self.user_service else ['systemctl']
+        
+        subprocess.run(systemctl_cmd + ['stop', self.service_name], check=False)
+        subprocess.run(systemctl_cmd + ['disable', self.service_name], check=False)
         
         if os.path.exists(self.service_file):
             os.remove(self.service_file)
+            self.info(f"Removed service file: {self.service_file}")
         
-        subprocess.run(['systemctl', 'daemon-reload'], check=True)
-        self.log("Service uninstalled")
+        subprocess.run(systemctl_cmd + ['daemon-reload'], check=True)
+        self.log(f"{service_type.capitalize()} uninstalled")
 
 
 def main():
     """Main entry point."""
-    if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help', 'help']:
-        print("""
-install-kode-kronical-service - Install kode-kronical-daemon as a systemd service
-
-This tool installs kode-kronical-daemon as a system service that automatically
-starts at boot and restarts on failure.
-
-Usage:
-    sudo install-kode-kronical-service           # Install service
-    sudo install-kode-kronical-service uninstall # Remove service
+    import argparse
     
-Requirements:
-  - Linux with systemd
-  - kode-kronical package installed
-  - Root privileges (sudo)
+    parser = argparse.ArgumentParser(
+        description="Install kode-kronical-daemon as a systemd service",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  install-kode-kronical-service                   # Install user service (default, no sudo needed)
+  install-kode-kronical-service --system          # Install system service (requires sudo)
+  install-kode-kronical-service uninstall         # Remove user service
+  sudo install-kode-kronical-service --system uninstall  # Remove system service
 
-After installation, the daemon will:
-  • Start automatically at boot
-  • Restart automatically if it crashes  
-  • Run in the background collecting system metrics
-  
-Management commands:
-  sudo systemctl status kode-kronical-daemon     # Check status
-  sudo systemctl stop kode-kronical-daemon       # Stop service
-  sudo systemctl start kode-kronical-daemon      # Start service
-  sudo systemctl restart kode-kronical-daemon    # Restart service
-  sudo journalctl -u kode-kronical-daemon -f     # View live logs
-        """)
-        return
+User service (DEFAULT):
+  • Starts when you log in
+  • No sudo required
+  • Uses ~/.config/systemd/user/
+  • Managed with: systemctl --user <command> kode-kronical-daemon
+
+System service:
+  • Starts at boot
+  • Requires sudo
+  • Uses /etc/systemd/system/
+  • Managed with: sudo systemctl <command> kode-kronical-daemon
+        """
+    )
     
-    installer = ServiceInstaller()
+    parser.add_argument('command', nargs='?', default='install',
+                       choices=['install', 'uninstall'],
+                       help='Command to execute (default: install)')
+    parser.add_argument('--system', action='store_true',
+                       help='Install as system service instead of user service (requires sudo)')
+    parser.add_argument('--user', action='store_true',
+                       help='Install as user service (default behavior, kept for compatibility)')
     
-    if len(sys.argv) > 1 and sys.argv[1] == 'uninstall':
+    args = parser.parse_args()
+    
+    # Determine service type: system service only if --system is explicitly specified
+    # Default is user service (user_service=True)
+    user_service = not args.system  # User service unless --system is specified
+    
+    installer = ServiceInstaller(user_service=user_service)
+    
+    if args.command == 'uninstall':
         installer.uninstall()
     else:
         installer.install()

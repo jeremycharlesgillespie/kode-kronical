@@ -10,7 +10,7 @@ echo "================================"
 
 # Activate virtual environment
 source .venv/bin/activate
-
+pip install -r requirements.txt
 # Read current version (no incrementing)
 echo "📋 Reading current version from pyproject.toml..."
 

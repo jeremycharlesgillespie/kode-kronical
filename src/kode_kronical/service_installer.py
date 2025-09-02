@@ -380,17 +380,34 @@ WantedBy=multi-user.target
         self.log("Installation complete!")
         print()
         self.info("The kode-kronical-daemon is now installed as a systemd service and will:")
-        print("  • Start automatically at boot")
+        
+        if self.user_service:
+            print("  • Start automatically at login")
+        else:
+            print("  • Start automatically at boot")
+        
         print("  • Restart automatically if it crashes")
         print("  • Run in the background collecting system metrics")
         print()
         self.info("Useful commands:")
-        print("  sudo systemctl status kode-kronical-daemon    # Check status")
-        print("  sudo systemctl stop kode-kronical-daemon      # Stop service")
-        print("  sudo systemctl start kode-kronical-daemon     # Start service")
-        print("  sudo systemctl restart kode-kronical-daemon   # Restart service")
-        print("  sudo systemctl disable kode-kronical-daemon   # Disable boot startup")
-        print("  sudo journalctl -u kode-kronical-daemon -f    # View live logs")
+        
+        if self.user_service:
+            # User service commands (no sudo needed)
+            print("  systemctl --user status kode-kronical-daemon    # Check status")
+            print("  systemctl --user stop kode-kronical-daemon      # Stop service")
+            print("  systemctl --user start kode-kronical-daemon     # Start service")
+            print("  systemctl --user restart kode-kronical-daemon   # Restart service")
+            print("  systemctl --user disable kode-kronical-daemon   # Disable login startup")
+            print("  journalctl --user -u kode-kronical-daemon -f    # View live logs")
+        else:
+            # System service commands (need sudo)
+            print("  sudo systemctl status kode-kronical-daemon    # Check status")
+            print("  sudo systemctl stop kode-kronical-daemon      # Stop service")
+            print("  sudo systemctl start kode-kronical-daemon     # Start service")
+            print("  sudo systemctl restart kode-kronical-daemon   # Restart service")
+            print("  sudo systemctl disable kode-kronical-daemon   # Disable boot startup")
+            print("  sudo journalctl -u kode-kronical-daemon -f    # View live logs")
+        
         print()
     
     def install(self):
